@@ -1,0 +1,9 @@
+# The book itself is not ours to redistribute.
+*.pdf
+
+# Generated for hosting by site/data/make_standalone.py
+site/dist/
+
+__pycache__/
+*.pyc
+.claude/

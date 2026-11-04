@@ -1,0 +1,1346 @@
+<meta charset="utf-8">
+<title>MCO-15 Opening Trainer</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,500;0,600;1,400&family=Source+Sans+3:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: a fixed index rail, a board stage, and the book's own two-column move table beneath it */
+:root{
+  --paper:#f2f4f0;
+  --panel:#fbfbf8;
+  --panel-2:#eceee8;
+  --ink:#1a241f;
+  --ink-soft:#5b6a62;
+  --ink-faint:#8b978f;
+  --rule:#d6dbd4;
+  --accent:#1c6a52;
+  --accent-ink:#ffffff;
+  --accent-soft:#e0ece6;
+  --sq-light:#e8e2d1;
+  --sq-dark:#879871;
+  --mark:#c9a33f;
+  --mark-soft:#f0e2b4;
+  --mark-ink:#8a6a12;
+  --mark-wash:#f7efd7;
+  --good:#2c7a4b;
+  --bad:#a3382e;
+  --piece-w:#fcfcf8;
+  --piece-b:#20292a;
+  --shadow:0 1px 2px rgba(26,36,31,.06),0 8px 24px -16px rgba(26,36,31,.25);
+  --f-display:"Spectral",Georgia,"Times New Roman",serif;
+  --f-body:"Source Sans 3","Segoe UI",system-ui,-apple-system,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular","Consolas",monospace;
+  --f-piece:"Segoe UI Symbol","Apple Symbols","Noto Sans Symbols 2","DejaVu Sans",sans-serif;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#11150f;
+    --panel:#191e19;
+    --panel-2:#222822;
+    --ink:#e7ece6;
+    --ink-soft:#9daba1;
+    --ink-faint:#74817a;
+    --rule:#2b322c;
+    --accent:#4fae8a;
+    --accent-ink:#07130e;
+    --accent-soft:#1b2a23;
+    --sq-light:#b3a98e;
+    --sq-dark:#5c6a4a;
+    --mark:#d6b457;
+    --mark-soft:#4a3f1c;
+    --mark-ink:#e3c570;
+    --mark-wash:#2a2412;
+    --good:#54b377;
+    --bad:#d9705f;
+    --piece-w:#f4f3ea;
+    --piece-b:#14191a;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px -18px rgba(0,0,0,.8);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#11150f;
+  --panel:#191e19;
+  --panel-2:#222822;
+  --ink:#e7ece6;
+  --ink-soft:#9daba1;
+  --ink-faint:#74817a;
+  --rule:#2b322c;
+  --accent:#4fae8a;
+  --accent-ink:#07130e;
+  --accent-soft:#1b2a23;
+  --sq-light:#b3a98e;
+  --sq-dark:#5c6a4a;
+  --mark:#d6b457;
+  --mark-soft:#4a3f1c;
+  --mark-ink:#e3c570;
+  --mark-wash:#2a2412;
+  --good:#54b377;
+  --bad:#d9705f;
+  --piece-w:#f4f3ea;
+  --piece-b:#14191a;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px -18px rgba(0,0,0,.8);
+  color-scheme:dark;
+}
+
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;background:var(--paper);color:var(--ink);
+  font-family:var(--f-body);font-size:15px;line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:3px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+/* ---------- shell ---------- */
+.app{display:grid;grid-template-rows:auto 1fr;height:100%;min-height:0}
+
+.topbar{
+  display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+  border-bottom:1px solid var(--rule);background:var(--panel);
+  padding-block:10px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));
+  padding-right:max(16px,env(safe-area-inset-right,0px));
+}
+.brand{display:flex;align-items:baseline;gap:9px;min-width:0}
+.brand b{font-family:var(--f-display);font-weight:600;font-size:19px;letter-spacing:-.01em;white-space:nowrap}
+.brand span{font-size:11.5px;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.09em;white-space:nowrap}
+.spacer{flex:1 1 auto}
+
+.tabs{display:flex;gap:2px;background:var(--panel-2);border:1px solid var(--rule);border-radius:7px;padding:2px}
+.tabs button{
+  border:0;background:transparent;border-radius:5px;padding:5px 13px;
+  font-size:13.5px;font-weight:600;color:var(--ink-soft);transition:background .15s,color .15s;
+}
+.tabs button[aria-selected="true"]{background:var(--accent);color:var(--accent-ink)}
+
+.iconbtn{
+  border:1px solid var(--rule);background:var(--panel-2);border-radius:7px;
+  width:34px;height:32px;display:grid;place-items:center;font-size:15px;line-height:1;
+}
+.iconbtn:hover{border-color:var(--accent)}
+#drawerBtn{display:none}
+
+.gauge{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink-soft)}
+.gauge .bar{width:92px;height:6px;border-radius:99px;background:var(--panel-2);overflow:hidden;border:1px solid var(--rule)}
+.gauge .bar i{display:block;height:100%;background:var(--accent);width:0;transition:width .3s}
+.gauge b{font-family:var(--f-mono);font-size:11.5px;font-weight:600;font-variant-numeric:tabular-nums}
+
+/* ---------- body split ---------- */
+.split{display:grid;grid-template-columns:304px 1fr;min-height:0;height:100%}
+
+.rail{
+  border-right:1px solid var(--rule);background:var(--panel);
+  display:grid;grid-template-rows:auto 1fr;min-height:0;
+}
+.railsearch{padding:11px 13px;border-bottom:1px solid var(--rule)}
+.railsearch input{
+  width:100%;border:1px solid var(--rule);background:var(--paper);color:var(--ink);
+  border-radius:7px;padding:7px 10px;font:inherit;font-size:13.5px;
+}
+.railsearch input::placeholder{color:var(--ink-faint)}
+.railscroll{overflow-y:auto;min-height:0;padding:8px 8px 28px}
+
+.partname{
+  display:flex;align-items:baseline;gap:7px;
+  padding:14px 7px 6px;font-family:var(--f-display);font-size:12px;font-weight:600;
+  text-transform:uppercase;letter-spacing:.1em;color:var(--ink-faint);
+}
+.partname em{font-family:var(--f-mono);font-style:normal;color:var(--accent);font-size:11px}
+
+.chip{
+  width:100%;display:grid;grid-template-columns:1fr auto;align-items:center;gap:8px;
+  border:0;background:transparent;border-radius:7px;padding:6px 9px;text-align:left;
+  color:var(--ink);transition:background .12s;
+}
+.chip:hover{background:var(--panel-2)}
+.chip[aria-current="true"]{background:var(--accent-soft)}
+.chip[aria-current="true"] .cname{color:var(--accent);font-weight:600}
+.cname{display:block;font-size:13.5px;line-height:1.3;min-width:0;overflow:hidden}
+.cmoves{display:block;font-family:var(--f-mono);font-size:10.5px;color:var(--ink-faint);margin-top:1px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cnt{font-family:var(--f-mono);font-size:10.5px;color:var(--ink-faint);font-variant-numeric:tabular-nums;white-space:nowrap}
+.cnt.full{color:var(--good);font-weight:600}
+
+.hitnote{padding:10px 9px;color:var(--ink-faint);font-size:13px}
+
+/* ---------- stage ---------- */
+.stage{overflow-y:auto;min-height:0}
+.stageinner{
+  padding-block:20px 56px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));
+  padding-right:max(16px,env(safe-area-inset-right,0px));
+  max-width:1180px;margin:0 auto;
+}
+
+.crumb{font-size:11.5px;text-transform:uppercase;letter-spacing:.09em;color:var(--ink-faint);margin-bottom:5px}
+h1.title{
+  font-family:var(--f-display);font-weight:600;font-size:clamp(23px,3.4vw,33px);
+  line-height:1.12;margin:0 0 7px;text-wrap:balance;letter-spacing:-.015em;
+}
+h1.title small{font-family:var(--f-body);font-size:.46em;font-weight:400;color:var(--ink-faint);
+  display:block;margin-top:5px;letter-spacing:0}
+.metarow{display:flex;flex-wrap:wrap;gap:7px;margin:0 0 18px}
+.tag{
+  font-family:var(--f-mono);font-size:11px;border:1px solid var(--rule);border-radius:5px;
+  padding:2px 7px;color:var(--ink-soft);background:var(--panel);
+}
+.tag.on{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+.tag.mark{border-color:var(--mark);color:var(--mark-ink);background:var(--mark-wash)}
+
+.cols{display:grid;grid-template-columns:minmax(0,420px) minmax(0,1fr);gap:26px;align-items:start}
+
+/* ---------- board ---------- */
+.boardwrap{position:sticky;top:0}
+.board{
+  display:grid;grid-template-columns:repeat(8,1fr);grid-template-rows:repeat(8,1fr);
+  aspect-ratio:1;width:100%;max-width:100%;
+  border:1px solid var(--rule);border-radius:4px;overflow:hidden;box-shadow:var(--shadow);
+  user-select:none;touch-action:manipulation;container-type:inline-size;
+}
+.sq{position:relative;display:grid;place-items:center;overflow:hidden;min-width:0}
+.sq.l{background:var(--sq-light)}
+.sq.d{background:var(--sq-dark)}
+.sq.from::after,.sq.to::after{
+  content:"";position:absolute;inset:0;background:var(--mark);opacity:.42;pointer-events:none;
+}
+.sq.sel::before{
+  content:"";position:absolute;inset:0;box-shadow:inset 0 0 0 3px var(--accent);pointer-events:none;z-index:2;
+}
+.sq.hint::before{
+  content:"";position:absolute;inset:0;box-shadow:inset 0 0 0 3px var(--mark);pointer-events:none;z-index:2;
+  animation:pulse 1s ease-in-out 3;
+}
+@keyframes pulse{50%{box-shadow:inset 0 0 0 7px var(--mark)}}
+.sq.ok::before{content:"";position:absolute;inset:0;background:var(--good);opacity:.35;z-index:2}
+.sq.no::before{content:"";position:absolute;inset:0;background:var(--bad);opacity:.38;z-index:2}
+.pc{
+  position:relative;z-index:1;font-family:var(--f-piece);
+  font-size:min(8.4vw,42px);line-height:1;
+}
+/* size the pieces to the board, not the window */
+@supports (width:1cqw){ .pc{font-size:9.4cqw} }
+.pc.w{color:var(--piece-w);text-shadow:
+  0 1px 0 #2b3330,1px 0 0 #2b3330,0 -1px 0 #2b3330,-1px 0 0 #2b3330,
+  1px 1px 0 #2b3330,-1px 1px 0 #2b3330,1px -1px 0 #2b3330,-1px -1px 0 #2b3330,
+  0 3px 5px rgba(0,0,0,.28)}
+.pc.b{color:var(--piece-b);text-shadow:
+  0 1px 0 rgba(255,255,255,.45),0 3px 5px rgba(0,0,0,.28)}
+.coord{position:absolute;font-family:var(--f-mono);font-size:max(7px,1.7cqw);opacity:.65;pointer-events:none;z-index:3}
+.coord.f{right:2px;bottom:1px}
+.coord.r{left:2px;top:1px}
+.sq.l .coord{color:#5d6a51}
+.sq.d .coord{color:#eee9da}
+
+.controls{display:flex;align-items:center;gap:5px;margin-top:11px;flex-wrap:wrap}
+.controls .iconbtn{width:38px;height:34px}
+.plycount{font-family:var(--f-mono);font-size:11.5px;color:var(--ink-faint);
+  font-variant-numeric:tabular-nums;margin-left:3px;white-space:nowrap}
+.tomove{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-soft);margin-left:auto}
+.tomove i{width:11px;height:11px;border-radius:99px;border:1px solid var(--ink-soft);display:block}
+.tomove i.w{background:var(--piece-w)}
+.tomove i.b{background:var(--piece-b)}
+
+/* ---------- panels ---------- */
+.card{
+  background:var(--panel);border:1px solid var(--rule);border-radius:9px;
+  padding:15px 17px;margin-bottom:16px;
+}
+.card h2{
+  font-family:var(--f-display);font-size:13px;font-weight:600;text-transform:uppercase;
+  letter-spacing:.1em;color:var(--ink-faint);margin:0 0 9px;
+}
+.card p{margin:0 0 9px;max-width:66ch}
+.card p:last-child{margin-bottom:0}
+.plan{display:grid;gap:9px}
+.plan div{display:grid;grid-template-columns:auto 1fr;gap:9px;align-items:start}
+.plan b{
+  font-family:var(--f-mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;
+  border:1px solid var(--rule);border-radius:4px;padding:2px 6px;color:var(--ink-soft);
+  background:var(--panel-2);white-space:nowrap;margin-top:2px;
+}
+
+/* move table, in the book's own column style */
+.movetable{width:100%;border-collapse:collapse;font-family:var(--f-mono);font-size:13.5px}
+.movetable th{
+  text-align:left;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;
+  color:var(--ink-faint);padding:0 8px 6px;border-bottom:1px solid var(--rule);
+}
+.movetable td{padding:0;border-bottom:1px solid var(--rule)}
+.movetable tr:last-child td{border-bottom:0}
+.movetable td.n{
+  width:2.6em;text-align:right;padding-right:9px;color:var(--ink-faint);font-size:11.5px;
+  font-variant-numeric:tabular-nums;
+}
+.mv{
+  width:100%;border:0;background:transparent;text-align:left;padding:5px 8px;border-radius:5px;
+  font-family:var(--f-mono);font-size:13.5px;transition:background .1s;
+}
+.mv:hover{background:var(--panel-2)}
+.mv.cur{background:var(--accent);color:var(--accent-ink);font-weight:600}
+.mv.past{color:var(--ink-soft)}
+.mv:disabled{color:var(--ink-faint);cursor:default}
+/* moves that belong to the footnote line rather than the column itself */
+.mv.side{color:var(--mark-ink);font-style:italic}
+.mv.side.cur{background:var(--mark);color:#201a06;font-style:normal}
+.movetable td:has(.mv.side){background:var(--mark-wash)}
+
+.vlist{display:grid;gap:3px}
+.vrow{
+  display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:start;
+  border:1px solid transparent;border-radius:8px;padding:8px 10px;background:transparent;
+  text-align:left;transition:background .12s,border-color .12s;width:100%;
+}
+.vrow:hover{background:var(--panel-2)}
+.vrow[aria-current="true"]{border-color:var(--accent);background:var(--accent-soft)}
+.vrow .tick{
+  width:19px;height:19px;border-radius:5px;border:1px solid var(--rule);background:var(--panel);
+  display:grid;place-items:center;font-size:11px;color:transparent;flex:none;margin-top:1px;
+}
+.vrow.done .tick{background:var(--good);border-color:var(--good);color:#fff}
+.vrow .vn{display:block;font-size:14px;font-weight:600;line-height:1.25}
+.vrow .vm{display:block;font-family:var(--f-mono);font-size:11px;color:var(--ink-faint);margin-top:2px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.vrow .vp{display:block;font-family:var(--f-mono);font-size:10.5px;color:var(--ink-faint);white-space:nowrap;margin-top:3px}
+.vrow > span:nth-child(2){min-width:0}
+.sidecount{
+  font-family:var(--f-mono);font-size:10px;font-weight:600;margin-left:6px;
+  border:1px solid var(--mark);border-radius:4px;padding:0 4px;color:var(--mark-ink);
+  background:var(--mark-wash);vertical-align:1px;
+}
+.vrow.sub[aria-current="true"]{border-color:var(--mark);background:var(--mark-wash)}
+.vrow .branch{
+  font-family:var(--f-mono);font-size:10.5px;color:var(--mark-ink);background:var(--mark-wash);
+  border:1px solid var(--mark);border-radius:4px;padding:2px 6px;white-space:nowrap;margin-top:1px;
+}
+.vrow .vm.big{font-size:12.5px;color:var(--ink);white-space:normal}
+.vrow .vcite{display:block;font-size:11.5px;color:var(--ink-soft);margin-top:3px;font-family:var(--f-body)}
+.vrow .vcite b{color:var(--mark-ink);font-weight:600}
+
+.note{color:var(--ink-soft);font-style:italic;font-family:var(--f-display);font-size:15px;max-width:62ch}
+
+/* ---------- train / quiz ---------- */
+.banner{
+  display:flex;align-items:center;gap:11px;flex-wrap:wrap;
+  border:1px solid var(--rule);border-left:3px solid var(--accent);background:var(--panel);
+  border-radius:8px;padding:11px 14px;margin-bottom:16px;
+}
+.banner .msg{flex:1 1 220px;min-width:0;font-size:14px}
+.banner .msg b{color:var(--accent)}
+.banner.good{border-left-color:var(--good)}
+.banner.good .msg b{color:var(--good)}
+.banner.bad{border-left-color:var(--bad)}
+.banner.bad .msg b{color:var(--bad)}
+.btn{
+  border:1px solid var(--rule);background:var(--panel-2);border-radius:7px;padding:6px 13px;
+  font-size:13.5px;font-weight:600;color:var(--ink);transition:border-color .12s,background .12s;
+}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.seg{display:flex;gap:2px;background:var(--panel-2);border:1px solid var(--rule);border-radius:7px;padding:2px}
+.seg button{border:0;background:transparent;border-radius:5px;padding:4px 11px;font-size:12.5px;font-weight:600;color:var(--ink-soft)}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+
+.opts{display:grid;gap:7px;margin-top:4px}
+.opt{
+  border:1px solid var(--rule);background:var(--panel);border-radius:8px;padding:10px 13px;
+  text-align:left;font-size:14.5px;font-weight:600;transition:border-color .12s,background .12s;
+}
+.opt:hover:not(:disabled){border-color:var(--accent)}
+.opt.right{border-color:var(--good);background:color-mix(in srgb,var(--good) 12%,var(--panel))}
+.opt.wrong{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 12%,var(--panel))}
+.opt:disabled{cursor:default}
+.score{font-family:var(--f-mono);font-size:12px;color:var(--ink-soft);font-variant-numeric:tabular-nums}
+
+.foot{
+  margin-top:26px;padding-top:14px;border-top:1px solid var(--rule);
+  font-size:12px;color:var(--ink-faint);max-width:70ch;
+}
+.kbd{font-family:var(--f-mono);font-size:10.5px;border:1px solid var(--rule);border-bottom-width:2px;
+  border-radius:4px;padding:1px 5px;background:var(--panel-2);color:var(--ink-soft)}
+.colophon{font-size:11.5px;line-height:1.55;color:var(--ink-faint);max-width:76ch}
+.colophon i{font-style:italic}
+.colophon b{color:var(--ink-soft);font-weight:600}
+
+/* ---------- narrow ---------- */
+@media (max-width:1040px){
+  .cols{grid-template-columns:1fr;gap:20px}
+  .boardwrap{position:static;max-width:400px}
+}
+/* the quiz needs its options beside the board, so it keeps two columns longer */
+.cols.quizcols{grid-template-columns:minmax(0,380px) minmax(0,1fr)}
+@media (max-width:1040px){
+  .cols.quizcols{grid-template-columns:minmax(0,300px) minmax(0,1fr);gap:20px}
+  .quizcols .boardwrap{max-width:300px}
+}
+@media (max-width:720px){
+  .cols.quizcols{grid-template-columns:1fr}
+  .quizcols .boardwrap{max-width:400px}
+}
+@media (max-width:900px){
+  .split{grid-template-columns:1fr}
+  #drawerBtn{display:grid}
+  .rail{
+    position:fixed;z-index:40;top:0;bottom:0;left:0;width:min(320px,86vw);
+    transform:translateX(-102%);transition:transform .22s ease;
+    box-shadow:0 0 0 100vmax rgba(0,0,0,0);border-right:1px solid var(--rule);
+    padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+    padding-left:env(safe-area-inset-left,0px);
+  }
+  .rail.open{transform:none;box-shadow:0 0 0 100vmax rgba(0,0,0,.42)}
+  .gauge .bar{width:64px}
+}
+@media (max-width:520px){
+  .brand span{display:none}
+  .tabs button{padding:5px 10px;font-size:12.5px}
+}
+</style>
+
+<div class="app">
+  <header class="topbar">
+    <button class="iconbtn" id="drawerBtn" aria-label="Show opening index">☰</button>
+    <div class="brand">
+      <b>MCO&#8209;15</b>
+      <span>Opening Trainer</span>
+    </div>
+    <div class="spacer"></div>
+    <div class="gauge" title="Variations you have marked as learned">
+      <div class="bar"><i id="gaugeBar"></i></div>
+      <b id="gaugeTxt">0/518</b>
+    </div>
+    <div class="tabs" role="tablist" aria-label="Mode">
+      <button role="tab" id="tab-study" aria-selected="true">Study</button>
+      <button role="tab" id="tab-train" aria-selected="false">Train</button>
+      <button role="tab" id="tab-quiz" aria-selected="false">Quiz</button>
+    </div>
+    <button class="iconbtn" id="themeBtn" aria-label="Switch light or dark theme">◐</button>
+  </header>
+
+  <div class="split">
+    <nav class="rail" id="rail" aria-label="Openings index">
+      <div class="railsearch">
+        <input id="search" type="search" placeholder="Search openings, variations, moves…"
+               autocomplete="off" aria-label="Search openings">
+      </div>
+      <div class="railscroll" id="railList"></div>
+    </nav>
+    <main class="stage" id="stage">
+      <div class="stageinner" id="stageInner"></div>
+    </main>
+  </div>
+</div>
+
+<script src="openings.js"></script>
+<script>
+(function(){
+"use strict";
+
+var D = window.MCO_DATA;
+var START = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+var GLYPH = {k:"♚",q:"♛",r:"♜",b:"♝",n:"♞",p:"♟"};
+var FILES = "abcdefgh";
+
+/* ---------- flatten ---------- */
+var CHAPTERS = [], VARIATIONS = [], BY_ID = {};
+D.parts.forEach(function(p){
+  p.chapters.forEach(function(c){
+    c.part = p; CHAPTERS.push(c);
+    c.variations.forEach(function(v){ v.ch = c; v.part = p; VARIATIONS.push(v); BY_ID[v.id] = v; });
+  });
+});
+
+/* ---------- storage ---------- */
+var LS_LEARNED = "mco15.learned.v1", LS_THEME = "mco15.theme.v1", LS_LAST = "mco15.last.v1";
+function lsGet(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
+function lsSet(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
+
+var learned = {};
+(function(){
+  var raw = lsGet(LS_LEARNED);
+  if(!raw) return;
+  try{ var a = JSON.parse(raw); if(Array.isArray(a)) a.forEach(function(id){ if(BY_ID[id]) learned[id]=1; }); }catch(e){}
+})();
+function saveLearned(){ lsSet(LS_LEARNED, JSON.stringify(Object.keys(learned))); }
+
+(function(){
+  var t = lsGet(LS_THEME);
+  if(t === "dark" || t === "light") document.documentElement.setAttribute("data-theme", t);
+})();
+
+/* ---------- state ---------- */
+var state = {
+  view: "study",
+  chapterId: CHAPTERS[0].id,
+  variationId: CHAPTERS[0].variations[0].id,
+  subId: null,
+  ply: 0,
+  flipped: false,
+  playing: false,
+  timer: null,
+  query: "",
+  train: null,
+  quiz: null
+};
+(function(){
+  var last = lsGet(LS_LAST);
+  if(last && BY_ID[last]){ state.variationId = last; state.chapterId = BY_ID[last].ch.id; }
+})();
+
+function hashView(){
+  var h = (location.hash || "").replace(/^#/, "");
+  return (h === "train" || h === "quiz" || h === "study") ? h : null;
+}
+var hv = hashView(); if(hv) state.view = hv;
+
+function curVar(){ return BY_ID[state.variationId]; }
+function curChapter(){
+  for(var i=0;i<CHAPTERS.length;i++) if(CHAPTERS[i].id === state.chapterId) return CHAPTERS[i];
+  return CHAPTERS[0];
+}
+/* A sideline is stored as the moves that follow a branch point in its parent
+   line, so the line on the board is the parent up to that point plus those. */
+function curSub(){
+  if(!state.subId) return null;
+  var subs = curVar().subs || [];
+  for(var i=0;i<subs.length;i++) if(subs[i].id === state.subId) return subs[i];
+  return null;
+}
+function activePlies(){
+  var s = curSub();
+  return s ? curVar().plies.slice(0, s.fromPly).concat(s.plies) : curVar().plies;
+}
+function branchPly(){ var s = curSub(); return s ? s.fromPly : -1; }
+
+/* ---------- chess helpers (positions are precomputed; no engine needed) ---------- */
+function fenToMap(fen){
+  var rows = fen.split(" ")[0].split("/"), map = {};
+  for(var r=0;r<8;r++){
+    var f = 0, s = rows[r];
+    for(var i=0;i<s.length;i++){
+      var ch = s[i];
+      if(ch >= "1" && ch <= "8"){ f += +ch; continue; }
+      map[FILES[f] + (8-r)] = { p: ch.toLowerCase(), c: (ch === ch.toUpperCase() ? "w" : "b") };
+      f++;
+    }
+  }
+  return map;
+}
+function sideToMove(fen){ return fen.split(" ")[1] === "w" ? "w" : "b"; }
+
+/* position for a ply index: 0 = initial, n = after plies[n-1] */
+function posAt(plies, n){
+  return { fen: n <= 0 ? START : plies[n-1].fen, last: n <= 0 ? null : plies[n-1] };
+}
+
+/* ---------- board ---------- */
+function buildBoard(opts){
+  opts = opts || {};
+  var el = document.createElement("div");
+  el.className = "board" + (opts.big ? " big" : "");
+  el.id = opts.id || "board";
+  var cells = {};
+  for(var r=8;r>=1;r--){
+    for(var f=0;f<8;f++){
+      var sq = FILES[f] + r;
+      var c = document.createElement("div");
+      c.className = "sq " + (((f + r) % 2) ? "d" : "l");
+      c.dataset.sq = sq;
+      var pc = document.createElement("span"); pc.className = "pc"; c.appendChild(pc);
+      if(r === 1){ var cf = document.createElement("span"); cf.className = "coord f"; cf.textContent = FILES[f]; c.appendChild(cf); }
+      if(f === 0){ var cr = document.createElement("span"); cr.className = "coord r"; cr.textContent = r; c.appendChild(cr); }
+      el.appendChild(c); cells[sq] = c;
+    }
+  }
+  el._cells = cells;
+  return el;
+}
+function orderBoard(el, flipped){
+  var sqs = Object.keys(el._cells);
+  for(var i=0;i<sqs.length;i++){
+    var sq = sqs[i], f = FILES.indexOf(sq[0]), r = +sq[1];
+    var idx = flipped ? ((r-1)*8 + (7-f)) : ((8-r)*8 + f);
+    el._cells[sq].style.order = idx;
+  }
+}
+function drawBoard(el, fen, last, flipped){
+  orderBoard(el, flipped);
+  var map = fenToMap(fen), sqs = Object.keys(el._cells);
+  for(var i=0;i<sqs.length;i++){
+    var sq = sqs[i], cell = el._cells[sq], pc = cell.firstChild, piece = map[sq];
+    pc.textContent = piece ? GLYPH[piece.p] : "";
+    pc.className = "pc" + (piece ? " " + piece.c : "");
+    cell.classList.remove("from","to","sel","hint","ok","no");
+    if(last && last.from === sq) cell.classList.add("from");
+    if(last && last.to === sq) cell.classList.add("to");
+  }
+}
+function flash(el, sq, cls){
+  var cell = el._cells[sq]; if(!cell) return;
+  cell.classList.add(cls);
+  setTimeout(function(){ cell.classList.remove(cls); }, 420);
+}
+
+/* ---------- rail ---------- */
+var railList = document.getElementById("railList");
+
+function chapterProgress(c){
+  var n = 0;
+  for(var i=0;i<c.variations.length;i++) if(learned[c.variations[i].id]) n++;
+  return n;
+}
+function chapterSubs(c){
+  var n = 0;
+  for(var i=0;i<c.variations.length;i++) n += (c.variations[i].subs || []).length;
+  return n;
+}
+
+function renderRail(){
+  railList.textContent = "";
+  var q = state.query.trim().toLowerCase();
+
+  if(q){
+    var hits = [];
+    for(var i=0;i<VARIATIONS.length && hits.length < 70;i++){
+      var v = VARIATIONS[i];
+      var hay = (v.name + " " + v.ch.name + " " + (v.ch.aka || "") + " " + v.pgn + " " + (v.ch.eco || "")).toLowerCase();
+      if(hay.indexOf(q) >= 0) hits.push(v);
+    }
+    var head = document.createElement("div");
+    head.className = "partname";
+    head.innerHTML = "<span>" + (hits.length ? hits.length + (hits.length >= 70 ? "+" : "") + " matches" : "No matches") + "</span>";
+    railList.appendChild(head);
+    if(!hits.length){
+      var hn = document.createElement("p");
+      hn.className = "hitnote";
+      hn.textContent = "Try an opening name (Najdorf), a variation (Marshall) or a move (Bg5).";
+      railList.appendChild(hn);
+      return;
+    }
+    hits.forEach(function(v){
+      var b = document.createElement("button");
+      b.className = "chip";
+      b.setAttribute("aria-current", v.id === state.variationId ? "true" : "false");
+      b.innerHTML = '<span class="cname">' + esc(v.name) +
+        '<span class="cmoves">' + esc(v.ch.name) + " · " + esc(v.pgn) + "</span></span>" +
+        '<span class="cnt">' + pageShort(v.page) + "</span>";
+      b.onclick = function(){ selectVariation(v.id); closeDrawer(); };
+      railList.appendChild(b);
+    });
+    return;
+  }
+
+  D.parts.forEach(function(p){
+    var h = document.createElement("div");
+    h.className = "partname";
+    h.innerHTML = "<em>" + p.num + "</em><span>" + esc(p.name) + "</span>";
+    railList.appendChild(h);
+    p.chapters.forEach(function(c){
+      var done = chapterProgress(c), tot = c.variations.length;
+      var b = document.createElement("button");
+      b.className = "chip";
+      b.setAttribute("aria-current", c.id === state.chapterId ? "true" : "false");
+      b.innerHTML = '<span class="cname">' + esc(c.name) +
+        '<span class="cmoves">' + esc(c.linePgn || "—") + "</span></span>" +
+        '<span class="cnt' + (done === tot ? " full" : "") + '">' + done + "/" + tot + "</span>";
+      b.onclick = function(){ selectChapter(c.id); closeDrawer(); };
+      railList.appendChild(b);
+    });
+  });
+}
+
+function esc(s){
+  return String(s).replace(/[&<>"]/g, function(ch){
+    return ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;" })[ch];
+  });
+}
+
+function updateGauge(){
+  var n = Object.keys(learned).length, t = VARIATIONS.length;
+  document.getElementById("gaugeBar").style.width = (t ? (n / t * 100) : 0) + "%";
+  document.getElementById("gaugeTxt").textContent = n + "/" + t;
+}
+
+/* ---------- selection ---------- */
+function selectChapter(id){
+  state.chapterId = id;
+  var c = curChapter();
+  state.variationId = c.variations[0].id;
+  state.subId = null;
+  state.ply = 0; stopPlay();
+  if(state.view === "train") startTrain();
+  render();
+}
+function selectVariation(id){
+  state.variationId = id;
+  state.chapterId = BY_ID[id].ch.id;
+  state.subId = null;
+  state.ply = 0; stopPlay();
+  lsSet(LS_LAST, id);
+  if(state.view === "train") startTrain();
+  render();
+}
+function selectSub(id){
+  state.subId = (state.subId === id) ? null : id;
+  var s = curSub();
+  stopPlay();
+  // open at the branch so the first sideline move is the next one played
+  state.ply = s ? s.fromPly : 0;
+  if(state.view === "train") startTrain();
+  render();
+}
+
+/* ---------- playback ---------- */
+function stopPlay(){
+  state.playing = false;
+  if(state.timer){ clearInterval(state.timer); state.timer = null; }
+  var b = document.getElementById("playBtn");
+  if(b) b.textContent = "▶";
+}
+function togglePlay(){
+  if(state.playing){ stopPlay(); return; }
+  if(state.ply >= activePlies().length) state.ply = 0;
+  state.playing = true;
+  var b = document.getElementById("playBtn");
+  if(b) b.textContent = "⏸";
+  state.timer = setInterval(function(){
+    if(state.ply >= activePlies().length){ stopPlay(); return; }
+    state.ply++; paintStudy();
+  }, 850);
+}
+function step(d){
+  stopPlay();
+  state.ply = Math.max(0, Math.min(activePlies().length, state.ply + d));
+  paintStudy();
+}
+
+/* ---------- study view ---------- */
+var studyBoard = null;
+
+function renderStudy(){
+  var c = curChapter(), v = curVar();
+  var host = document.getElementById("stageInner");
+  host.textContent = "";
+
+  var head = document.createElement("div");
+  head.innerHTML =
+    '<p class="crumb">Part ' + c.part.num + " · " + esc(c.part.name) + "</p>" +
+    '<h1 class="title">' + esc(c.name) +
+      (c.aka ? "<small>Also known as " + esc(c.aka) + "</small>" : "") + "</h1>" +
+    '<div class="metarow">' +
+      (c.eco ? '<span class="tag">ECO ' + esc(c.eco) + "</span>" : "") +
+      '<span class="tag">MCO-15, p.' + c.page + "</span>" +
+      (c.linePgn ? '<span class="tag on">' + esc(c.linePgn) + "</span>" : "") +
+      '<span class="tag">' + c.variations.length + " variations</span>" +
+      (chapterSubs(c) ? '<span class="tag mark">' + chapterSubs(c) + " sidelines</span>" : "") +
+    "</div>";
+  host.appendChild(head);
+
+  var cols = document.createElement("div");
+  cols.className = "cols";
+  cols.innerHTML =
+    '<div class="boardwrap">' +
+      '<div id="boardSlot"></div>' +
+      '<div class="controls">' +
+        '<button class="iconbtn" id="firstBtn" aria-label="Start of line" title="Start (Home)">⏮</button>' +
+        '<button class="iconbtn" id="prevBtn" aria-label="Previous move" title="Previous (←)">◀</button>' +
+        '<button class="iconbtn" id="playBtn" aria-label="Play through the line" title="Play (Space)">▶</button>' +
+        '<button class="iconbtn" id="nextBtn" aria-label="Next move" title="Next (→)">▶︎</button>' +
+        '<button class="iconbtn" id="lastBtn" aria-label="End of line" title="End (End)">⏭</button>' +
+        '<button class="iconbtn" id="flipBtn" aria-label="Flip the board" title="Flip (F)">⇅</button>' +
+        '<span class="plycount" id="plyCount"></span>' +
+        '<span class="tomove" id="toMove"></span>' +
+      "</div>" +
+    "</div>" +
+    '<div id="sidePanel"></div>';
+  host.appendChild(cols);
+
+  studyBoard = buildBoard({ id: "board" });
+  document.getElementById("boardSlot").appendChild(studyBoard);
+  studyBoard.addEventListener("click", function(){ /* study board is read-only */ });
+
+  var side = document.getElementById("sidePanel");
+
+  var vcard = document.createElement("section");
+  vcard.className = "card";
+  vcard.innerHTML = '<h2 id="lineHead"></h2>' +
+    '<p class="note" id="vNote"></p>' +
+    '<div style="overflow-x:auto"><table class="movetable" id="moveTable"></table></div>' +
+    '<div style="display:flex;gap:9px;flex-wrap:wrap;margin-top:13px;align-items:center">' +
+      '<button class="btn" id="learnBtn"></button>' +
+      '<button class="btn" id="trainThis">Train this line</button>' +
+      '<button class="btn" id="mainBtn" hidden>Back to the main line</button>' +
+      '<span class="plycount" id="vPage"></span>' +
+    "</div>";
+  side.appendChild(vcard);
+
+  if(v.subs && v.subs.length){
+    var sc = document.createElement("section");
+    sc.className = "card";
+    sc.innerHTML = "<h2>Sidelines from the book · " + v.subs.length + "</h2>" +
+      '<p style="font-size:13px;color:var(--ink-soft);margin:-2px 0 11px">' +
+      "Analysis from the footnotes to this column. Pick one to play it out on the board.</p>";
+    var sl = document.createElement("div");
+    sl.className = "vlist";
+    v.subs.forEach(function(s){
+      var at = v.plies[s.fromPly - 1];
+      var row = document.createElement("button");
+      row.className = "vrow sub";
+      row.setAttribute("aria-current", s.id === state.subId ? "true" : "false");
+      row.innerHTML = '<span class="branch">' +
+          (s.fromPly ? esc(moveLabel(s.fromPly - 1, at.san)) : "start") + "</span>" +
+        '<span><span class="vm big">' + esc(s.pgn) + "</span>" +
+          (s.cite || s.verdict
+            ? '<span class="vcite">' + (s.verdict ? '<b>' + esc(s.verdict) + "</b>" : "") +
+              (s.verdict && s.cite ? " · " : "") + esc(s.cite) + "</span>"
+            : "") +
+        "</span>" +
+        '<span class="vp">p.' + s.page + "</span>";
+      row.onclick = function(){ selectSub(s.id); };
+      sl.appendChild(row);
+    });
+    sc.appendChild(sl);
+    side.appendChild(sc);
+  }
+
+  var ideas = document.createElement("section");
+  ideas.className = "card";
+  ideas.innerHTML = "<h2>What both sides are doing</h2>" +
+    "<p>" + esc(c.summary) + "</p>" +
+    '<div class="plan">' +
+      "<div><b>White</b><span>" + esc(c.whitePlan) + "</span></div>" +
+      "<div><b>Black</b><span>" + esc(c.blackPlan) + "</span></div>" +
+    "</div>";
+  side.appendChild(ideas);
+
+  var vl = document.createElement("section");
+  vl.className = "card";
+  vl.innerHTML = "<h2>Variations in this chapter</h2>";
+  var list = document.createElement("div");
+  list.className = "vlist";
+  c.variations.forEach(function(vv){
+    var row = document.createElement("button");
+    row.className = "vrow" + (learned[vv.id] ? " done" : "");
+    row.setAttribute("aria-current", vv.id === state.variationId ? "true" : "false");
+    row.innerHTML = '<span class="tick" aria-hidden="true">✓</span>' +
+      '<span><span class="vn">' + esc(vv.name) +
+        (vv.subs && vv.subs.length ? '<span class="sidecount">+' + vv.subs.length + "</span>" : "") +
+      "</span>" +
+      '<span class="vm">' + esc(vv.pgn) + "</span></span>" +
+      '<span class="vp">' + pageShort(vv.page) + "</span>";
+    row.onclick = function(){ selectVariation(vv.id); };
+    list.appendChild(row);
+  });
+  vl.appendChild(list);
+  side.appendChild(vl);
+
+  var foot = document.createElement("div");
+  foot.className = "foot";
+  foot.innerHTML = "Chapter " + c.num + " of Part " + c.part.num + ". " +
+    esc(c.part.blurb) + "<br><br>" +
+    'Keys: <span class="kbd">←</span> <span class="kbd">→</span> step, ' +
+    '<span class="kbd">Space</span> play, <span class="kbd">F</span> flip, ' +
+    '<span class="kbd">L</span> mark learned, <span class="kbd">/</span> search.';
+  host.appendChild(foot);
+  host.appendChild(colophon());
+
+  document.getElementById("firstBtn").onclick = function(){ stopPlay(); state.ply = 0; paintStudy(); };
+  document.getElementById("prevBtn").onclick  = function(){ step(-1); };
+  document.getElementById("nextBtn").onclick  = function(){ step(1); };
+  document.getElementById("lastBtn").onclick  = function(){ stopPlay(); state.ply = activePlies().length; paintStudy(); };
+  document.getElementById("playBtn").onclick  = togglePlay;
+  document.getElementById("flipBtn").onclick   = function(){ state.flipped = !state.flipped; paintStudy(); };
+  document.getElementById("learnBtn").onclick  = function(){ toggleLearned(state.variationId); };
+  document.getElementById("trainThis").onclick = function(){ setView("train"); };
+  document.getElementById("mainBtn").onclick   = function(){ selectSub(state.subId); };
+
+  paintStudy();
+}
+
+/* "7 Bg5" for a White move, "7...e6" for a Black one */
+function moveLabel(ply, san){
+  return (ply % 2 === 0) ? ((ply / 2 + 1) + " " + san)
+                         : (((ply - 1) / 2 + 1) + "…" + san);
+}
+/* page 0 means the line is modern theory rather than something in the book */
+function pageTag(page){ return page ? "MCO-15, p." + page : "Modern theory"; }
+function pageShort(page){ return page ? "p." + page : "new"; }
+
+/* Where the material comes from — shown on every view. */
+function colophon(){
+  var el = document.createElement("div");
+  el.className = "foot colophon";
+  el.innerHTML =
+    "Opening names, move orders, game citations and page references are indexed from " +
+    "<i>Modern Chess Openings, 15th Edition</i> by Nick de Firmian (Random House Puzzles " +
+    "&amp; Games / David McKay, 2008). Lines marked <b>Modern theory</b> are not from the " +
+    "book. The explanatory notes and plans are written for this site, not taken from it; " +
+    "the book's own commentary and evaluations are not reproduced — the page numbers " +
+    "are there so you can look a line up. " +
+    D.meta.variations + " lines and " + D.meta.sublines + " sidelines, every one " +
+    "machine-verified as legal chess.";
+  return el;
+}
+
+function paintStudy(){
+  var v = curVar(), sub = curSub(), plies = activePlies(), br = branchPly();
+  var pos = posAt(plies, state.ply);
+  drawBoard(studyBoard, pos.fen, pos.last, state.flipped);
+
+  document.getElementById("lineHead").textContent = sub
+    ? "Sideline · " + v.name
+    : "Line · " + v.name;
+  document.getElementById("mainBtn").hidden = !sub;
+
+  document.getElementById("plyCount").textContent =
+    state.ply + "/" + plies.length + " moves";
+  var stm = sideToMove(pos.fen);
+  document.getElementById("toMove").innerHTML =
+    '<i class="' + stm + '"></i>' + (stm === "w" ? "White" : "Black") + " to move";
+
+  document.getElementById("vNote").textContent = sub
+    ? ((sub.verdict ? sub.verdict.charAt(0).toUpperCase() + sub.verdict.slice(1) + ". " : "") +
+       (sub.cite ? "From " + sub.cite + "." : "A line from the book's notes to this column."))
+    : v.note;
+  document.getElementById("vPage").textContent = pageTag(sub ? sub.page : v.page);
+
+  var lb = document.getElementById("learnBtn");
+  lb.textContent = learned[v.id] ? "✓ Learned" : "Mark as learned";
+  lb.className = "btn" + (learned[v.id] ? " primary" : "");
+
+  // the book's own column table: move number, White, Black
+  var t = document.getElementById("moveTable");
+  t.textContent = "";
+  var thead = document.createElement("thead");
+  thead.innerHTML = "<tr><th></th><th>White</th><th>Black</th></tr>";
+  t.appendChild(thead);
+  var tb = document.createElement("tbody");
+  for(var i=0;i<plies.length;i+=2){
+    var tr = document.createElement("tr");
+    var n = document.createElement("td"); n.className = "n"; n.textContent = (i/2 + 1); tr.appendChild(n);
+    for(var k=0;k<2;k++){
+      var td = document.createElement("td");
+      var p = plies[i+k];
+      if(p){
+        var b = document.createElement("button");
+        b.className = "mv" + (state.ply === i+k+1 ? " cur" : (state.ply > i+k+1 ? " past" : "")) +
+          (br >= 0 && i+k >= br ? " side" : "");
+        b.textContent = p.san;
+        b.dataset.ply = i+k+1;
+        b.onclick = function(){ stopPlay(); state.ply = +this.dataset.ply; paintStudy(); };
+        td.appendChild(b);
+      }
+      tr.appendChild(td);
+    }
+    tb.appendChild(tr);
+  }
+  t.appendChild(tb);
+
+  var rows = document.querySelectorAll(".vrow:not(.sub)");
+  for(var r=0;r<rows.length;r++){
+    var row = rows[r];
+    if(row.getAttribute("aria-current") === "true") row.classList.toggle("done", !!learned[v.id]);
+  }
+}
+
+function toggleLearned(id){
+  if(learned[id]) delete learned[id]; else learned[id] = 1;
+  saveLearned(); updateGauge(); renderRail();
+  if(state.view === "study") paintStudy();
+  if(state.view === "train") paintTrain();
+}
+
+/* ---------- train view ---------- */
+function startTrain(){
+  state.train = { vid: state.variationId, subId: state.subId, ply: 0, sel: null,
+                  wrong: 0, hints: 0, side: (state.train && state.train.side) || "both" };
+}
+var trainBoard = null;
+
+function renderTrain(){
+  if(!state.train || state.train.vid !== state.variationId || state.train.subId !== state.subId) startTrain();
+  var v = curVar(), c = v.ch, sub = curSub();
+  var host = document.getElementById("stageInner");
+  host.textContent = "";
+
+  host.innerHTML =
+    '<p class="crumb">Train · ' + esc(c.name) + (sub ? " · sideline" : "") + "</p>" +
+    '<h1 class="title">' + esc(v.name) + '<small>' +
+      esc(sub ? v.pgn.split(" ").slice(0, sub.fromPly).join(" ") + " → " + sub.pgn : v.pgn) +
+      "</small></h1>" +
+    '<div class="banner" id="trainBanner">' +
+      '<span class="msg" id="trainMsg"></span>' +
+      '<div class="seg" id="sideSeg" role="group" aria-label="Which side you play">' +
+        '<button data-side="both">Both</button>' +
+        '<button data-side="w">White</button>' +
+        '<button data-side="b">Black</button>' +
+      "</div>" +
+      '<button class="btn" id="hintBtn">Hint</button>' +
+      '<button class="btn" id="resetBtn">Restart</button>' +
+    "</div>" +
+    '<div class="cols">' +
+      '<div class="boardwrap"><div id="boardSlot"></div>' +
+        '<div class="controls">' +
+          '<button class="iconbtn" id="flipBtn" aria-label="Flip the board" title="Flip (F)">⇅</button>' +
+          '<span class="plycount" id="plyCount"></span>' +
+          '<span class="tomove" id="toMove"></span>' +
+        "</div>" +
+      "</div>" +
+      '<div id="sidePanel"></div>' +
+    "</div>";
+
+  trainBoard = buildBoard({ id: "tboard", big: true });
+  document.getElementById("boardSlot").appendChild(trainBoard);
+  trainBoard.addEventListener("click", onTrainClick);
+
+  var side = document.getElementById("sidePanel");
+  side.innerHTML =
+    '<section class="card"><h2>How this works</h2>' +
+      "<p>Play the moves of the line on the board: click the piece, then its destination square. " +
+      "Choose a side and the opponent answers automatically.</p>" +
+      '<p class="note">' + esc(sub ? (sub.cite ? "Sideline from " + sub.cite + "." :
+                                      "A line from the book's notes to this column.") : v.note) + "</p>" +
+      '<div style="display:flex;gap:9px;flex-wrap:wrap;margin-top:11px;align-items:center">' +
+        '<button class="btn" id="learnBtn"></button>' +
+        '<button class="btn" id="studyThis">Open in Study</button>' +
+        '<span class="plycount">' + pageTag(sub ? sub.page : v.page) + "</span>" +
+      "</div>" +
+    "</section>" +
+    '<section class="card"><h2>Moves played so far</h2>' +
+      '<div style="overflow-x:auto"><table class="movetable" id="moveTable"></table></div>' +
+    "</section>" +
+    '<section class="card"><h2>Next line in ' + esc(c.name) + "</h2>" +
+      '<div class="vlist" id="nextList"></div></section>';
+
+  document.getElementById("flipBtn").onclick = function(){ state.flipped = !state.flipped; paintTrain(); };
+  document.getElementById("hintBtn").onclick = function(){
+    var t = state.train, pl = activePlies();
+    if(t.ply >= pl.length) return;
+    t.hints++;
+    var cell = trainBoard._cells[pl[t.ply].from];
+    if(cell){ cell.classList.add("hint"); setTimeout(function(){ cell.classList.remove("hint"); }, 3000); }
+  };
+  document.getElementById("resetBtn").onclick = function(){ startTrain(); paintTrain(); };
+  document.getElementById("learnBtn").onclick = function(){ toggleLearned(state.variationId); };
+  document.getElementById("studyThis").onclick = function(){ setView("study"); };
+
+  var segBtns = document.querySelectorAll("#sideSeg button");
+  for(var i=0;i<segBtns.length;i++){
+    segBtns[i].onclick = function(){
+      var side = this.dataset.side;
+      startTrain();
+      state.train.side = side;
+      paintTrain();
+      maybeAutoMove();
+    };
+  }
+
+  var nl = document.getElementById("nextList");
+  var idx = c.variations.indexOf(v);
+  var others = c.variations.slice(idx + 1).concat(c.variations.slice(0, idx)).slice(0, 5);
+  others.forEach(function(vv){
+    var row = document.createElement("button");
+    row.className = "vrow" + (learned[vv.id] ? " done" : "");
+    row.innerHTML = '<span class="tick" aria-hidden="true">✓</span>' +
+      '<span><span class="vn">' + esc(vv.name) + '</span><span class="vm">' + esc(vv.pgn) + "</span></span>" +
+      '<span class="vp">' + pageShort(vv.page) + "</span>";
+    row.onclick = function(){ selectVariation(vv.id); };
+    nl.appendChild(row);
+  });
+
+  host.appendChild(colophon());
+  paintTrain();
+  maybeAutoMove();
+}
+
+function paintTrain(){
+  var t = state.train, v = curVar(), plies = activePlies(), br = branchPly();
+  var pos = posAt(plies, t.ply);
+  drawBoard(trainBoard, pos.fen, pos.last, state.flipped);
+  if(t.sel && trainBoard._cells[t.sel]) trainBoard._cells[t.sel].classList.add("sel");
+
+  document.getElementById("plyCount").textContent = t.ply + "/" + plies.length + " moves";
+  var stm = sideToMove(pos.fen);
+  document.getElementById("toMove").innerHTML =
+    '<i class="' + stm + '"></i>' + (stm === "w" ? "White" : "Black") + " to move";
+
+  var banner = document.getElementById("trainBanner"), msg = document.getElementById("trainMsg");
+  banner.className = "banner";
+  if(t.ply >= plies.length){
+    banner.classList.add("good");
+    msg.innerHTML = "<b>Line complete.</b> " +
+      (t.wrong === 0 && t.hints === 0 ? "No mistakes, no hints."
+        : t.wrong + " wrong " + (t.wrong === 1 ? "move" : "moves") + ", " + t.hints + " " + (t.hints === 1 ? "hint" : "hints") + ".");
+  } else if(t.lastWrong){
+    banner.classList.add("bad");
+    msg.innerHTML = "<b>Not this one.</b> " + (stm === "w" ? "White" : "Black") +
+      " has a different move here. Try again, or take a hint.";
+  } else {
+    msg.innerHTML = "<b>" + (stm === "w" ? "White" : "Black") + " to play move " +
+      (Math.floor(t.ply / 2) + 1) + ".</b> Click the piece, then its square.";
+  }
+
+  var seg = document.querySelectorAll("#sideSeg button");
+  for(var i=0;i<seg.length;i++) seg[i].setAttribute("aria-pressed", seg[i].dataset.side === t.side ? "true" : "false");
+
+  var lb = document.getElementById("learnBtn");
+  lb.textContent = learned[v.id] ? "✓ Learned" : "Mark as learned";
+  lb.className = "btn" + (learned[v.id] ? " primary" : "");
+
+  var tbl = document.getElementById("moveTable");
+  tbl.textContent = "";
+  var th = document.createElement("thead");
+  th.innerHTML = "<tr><th></th><th>White</th><th>Black</th></tr>";
+  tbl.appendChild(th);
+  var tb = document.createElement("tbody");
+  for(var j=0;j<plies.length;j+=2){
+    var tr = document.createElement("tr");
+    var n = document.createElement("td"); n.className = "n"; n.textContent = (j/2 + 1); tr.appendChild(n);
+    for(var k=0;k<2;k++){
+      var td = document.createElement("td"), p = plies[j+k];
+      if(p){
+        var b = document.createElement("button");
+        b.className = "mv past" + (br >= 0 && j+k >= br ? " side" : ""); b.disabled = true;
+        b.textContent = (j + k) < t.ply ? p.san : "···";
+        td.appendChild(b);
+      }
+      tr.appendChild(td);
+    }
+    tb.appendChild(tr);
+  }
+  tbl.appendChild(tb);
+}
+
+function maybeAutoMove(){
+  var t = state.train, plies = activePlies();
+  if(!t || t.side === "both" || t.ply >= plies.length) return;
+  var stm = sideToMove(posAt(plies, t.ply).fen);
+  if(stm === t.side) return;
+  setTimeout(function(){
+    if(state.view !== "train" || !state.train || state.train !== t) return;
+    if(t.ply >= activePlies().length) return;
+    t.ply++; t.sel = null; t.lastWrong = false;
+    paintTrain();
+    maybeAutoMove();
+  }, 520);
+}
+
+function onTrainClick(ev){
+  var cell = ev.target.closest ? ev.target.closest(".sq") : null;
+  if(!cell) return;
+  var t = state.train, v = curVar(), plies = activePlies();
+  if(t.ply >= plies.length) return;
+  var sq = cell.dataset.sq, want = plies[t.ply];
+  var pos = posAt(plies, t.ply), map = fenToMap(pos.fen), stm = sideToMove(pos.fen);
+
+  if(t.side !== "both" && stm !== t.side) return;
+
+  if(!t.sel){
+    if(map[sq] && map[sq].c === stm){ t.sel = sq; t.lastWrong = false; paintTrain(); }
+    return;
+  }
+  if(sq === t.sel){ t.sel = null; paintTrain(); return; }
+
+  if(t.sel === want.from && sq === want.to){
+    t.ply++; t.sel = null; t.lastWrong = false;
+    paintTrain();
+    flash(trainBoard, want.to, "ok");
+    // finishing the main line counts as learning it; a sideline does not
+    if(t.ply >= plies.length && !state.subId && !learned[v.id]){
+      learned[v.id] = 1; saveLearned(); updateGauge(); renderRail(); paintTrain();
+    }
+    maybeAutoMove();
+    return;
+  }
+
+  // wrong: if they picked another of their own pieces, treat it as reselecting
+  if(map[sq] && map[sq].c === stm){ t.sel = sq; paintTrain(); return; }
+  t.wrong++; t.lastWrong = true;
+  var bad = t.sel; t.sel = null;
+  paintTrain();
+  flash(trainBoard, sq, "no");
+  if(bad) flash(trainBoard, bad, "no");
+}
+
+/* ---------- quiz view ---------- */
+function newQuiz(){
+  var pool = VARIATIONS.filter(function(v){ return v.plies.length >= 6; });
+  var v = pool[Math.floor(Math.random() * pool.length)];
+  var right = v.ch;
+  var opts = [right];
+  var guard = 0;
+  while(opts.length < 4 && guard++ < 400){
+    var c = CHAPTERS[Math.floor(Math.random() * CHAPTERS.length)];
+    if(opts.indexOf(c) < 0 && c.name !== right.name) opts.push(c);
+  }
+  for(var i = opts.length - 1; i > 0; i--){
+    var j = Math.floor(Math.random() * (i + 1)), tmp = opts[i]; opts[i] = opts[j]; opts[j] = tmp;
+  }
+  var prev = state.quiz || { asked: 0, right: 0 };
+  state.quiz = { v: v, opts: opts, answered: null, asked: prev.asked, right: prev.right };
+}
+var quizBoard = null;
+
+function renderQuiz(){
+  if(!state.quiz) newQuiz();
+  var q = state.quiz, v = q.v;
+  var host = document.getElementById("stageInner");
+  host.textContent = "";
+
+  host.innerHTML =
+    '<p class="crumb">Quiz · name the opening</p>' +
+    '<h1 class="title">Which opening is this?<small>Position after ' + v.plies.length +
+      " moves of a line from MCO-15</small></h1>" +
+    '<div class="banner" id="quizBanner">' +
+      '<span class="msg" id="quizMsg"></span>' +
+      '<span class="score" id="quizScore"></span>' +
+      '<button class="btn primary" id="nextQ">Next position</button>' +
+    "</div>" +
+    '<div class="cols quizcols">' +
+      '<div class="boardwrap"><div id="boardSlot"></div>' +
+        '<div class="controls"><button class="iconbtn" id="flipBtn" aria-label="Flip the board">⇅</button>' +
+        '<span class="tomove" id="toMove"></span></div>' +
+      "</div>" +
+      '<div id="sidePanel"></div>' +
+    "</div>";
+
+  quizBoard = buildBoard({ id: "qboard", big: true });
+  document.getElementById("boardSlot").appendChild(quizBoard);
+
+  var side = document.getElementById("sidePanel");
+  side.innerHTML = '<section class="card"><h2>Pick the opening</h2><div class="opts" id="opts"></div></section>' +
+    '<section class="card" id="revealCard" hidden></section>';
+
+  q.opts.forEach(function(c){
+    var b = document.createElement("button");
+    b.className = "opt";
+    b.textContent = c.name;
+    b.onclick = function(){ answerQuiz(c, b); };
+    document.getElementById("opts").appendChild(b);
+  });
+
+  document.getElementById("nextQ").onclick = function(){ newQuiz(); renderQuiz(); };
+  document.getElementById("flipBtn").onclick = function(){ state.flipped = !state.flipped; paintQuiz(); };
+
+  host.appendChild(colophon());
+  paintQuiz();
+}
+
+function paintQuiz(){
+  var q = state.quiz, v = q.v;
+  var pos = posAt(v.plies, v.plies.length);
+  drawBoard(quizBoard, pos.fen, pos.last, state.flipped);
+  var stm = sideToMove(pos.fen);
+  document.getElementById("toMove").innerHTML = '<i class="' + stm + '"></i>' + (stm === "w" ? "White" : "Black") + " to move";
+  document.getElementById("quizScore").textContent = q.right + " of " + q.asked + " correct";
+  var msg = document.getElementById("quizMsg"), banner = document.getElementById("quizBanner");
+  banner.className = "banner";
+  if(!q.answered){
+    msg.innerHTML = "<b>Name the opening</b> from the position on the board.";
+  } else if(q.answered === v.ch){
+    banner.classList.add("good");
+    msg.innerHTML = "<b>Correct.</b> " + esc(v.ch.name) + " — " + esc(v.name) + ".";
+  } else {
+    banner.classList.add("bad");
+    msg.innerHTML = "<b>No — that is the " + esc(q.answered.name) + ".</b> This is the " + esc(v.ch.name) + ".";
+  }
+}
+
+function answerQuiz(c, btn){
+  var q = state.quiz;
+  if(q.answered) return;
+  q.answered = c; q.asked++;
+  if(c === q.v.ch) q.right++;
+  var btns = document.querySelectorAll("#opts .opt");
+  for(var i=0;i<btns.length;i++){
+    btns[i].disabled = true;
+    if(btns[i].textContent === q.v.ch.name) btns[i].classList.add("right");
+    else if(btns[i] === btn) btns[i].classList.add("wrong");
+  }
+  var card = document.getElementById("revealCard");
+  card.hidden = false;
+  card.innerHTML = "<h2>" + esc(q.v.ch.name) + " · " + esc(q.v.name) + "</h2>" +
+    '<p style="font-family:var(--f-mono);font-size:13px">' + esc(q.v.pgn) + "</p>" +
+    '<p class="note">' + esc(q.v.note) + "</p>" +
+    '<div style="display:flex;gap:9px;flex-wrap:wrap;margin-top:11px;align-items:center">' +
+      '<button class="btn" id="openIt">Study this line</button>' +
+      '<span class="plycount">MCO-15, p.' + q.v.page + " · Part " + q.v.part.num + "</span></div>";
+  document.getElementById("openIt").onclick = function(){
+    selectVariation(q.v.id); setView("study");
+  };
+  paintQuiz();
+}
+
+/* ---------- view switching ---------- */
+function setView(v){
+  state.view = v;
+  stopPlay();
+  try{ location.hash = v; }catch(e){}
+  ["study","train","quiz"].forEach(function(k){
+    document.getElementById("tab-" + k).setAttribute("aria-selected", k === v ? "true" : "false");
+  });
+  render();
+}
+function render(){
+  renderRail(); updateGauge();
+  if(state.view === "study") renderStudy();
+  else if(state.view === "train") renderTrain();
+  else renderQuiz();
+  document.getElementById("stage").scrollTop = 0;
+}
+
+/* ---------- wiring ---------- */
+["study","train","quiz"].forEach(function(k){
+  document.getElementById("tab-" + k).onclick = function(){ setView(k); };
+});
+
+var searchBox = document.getElementById("search");
+searchBox.oninput = function(){ state.query = this.value; renderRail(); };
+
+document.getElementById("drawerBtn").onclick = function(){
+  document.getElementById("rail").classList.toggle("open");
+};
+function closeDrawer(){ document.getElementById("rail").classList.remove("open"); }
+document.getElementById("stage").addEventListener("click", closeDrawer);
+
+document.getElementById("themeBtn").onclick = function(){
+  var root = document.documentElement;
+  var cur = root.getAttribute("data-theme");
+  if(!cur){
+    var dark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+    cur = dark ? "dark" : "light";
+  }
+  var next = cur === "dark" ? "light" : "dark";
+  root.setAttribute("data-theme", next);
+  lsSet(LS_THEME, next);
+};
+
+document.addEventListener("keydown", function(e){
+  if(e.target && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)){
+    if(e.key === "Escape"){ e.target.value = ""; state.query = ""; renderRail(); e.target.blur(); }
+    return;
+  }
+  if(e.key === "/"){ e.preventDefault(); searchBox.focus(); return; }
+  if(e.key === "f" || e.key === "F"){
+    state.flipped = !state.flipped;
+    if(state.view === "study") paintStudy(); else if(state.view === "train") paintTrain(); else paintQuiz();
+    return;
+  }
+  if(e.key === "l" || e.key === "L"){ toggleLearned(state.variationId); return; }
+  if(state.view !== "study") return;
+  if(e.key === "ArrowRight"){ e.preventDefault(); step(1); }
+  else if(e.key === "ArrowLeft"){ e.preventDefault(); step(-1); }
+  else if(e.key === "Home"){ stopPlay(); state.ply = 0; paintStudy(); }
+  else if(e.key === "End"){ stopPlay(); state.ply = activePlies().length; paintStudy(); }
+  else if(e.key === " "){ e.preventDefault(); togglePlay(); }
+});
+
+window.addEventListener("hashchange", function(){
+  var v = hashView();
+  if(v && v !== state.view) setView(v);
+});
+
+setView(state.view);
+})();
+</script>
