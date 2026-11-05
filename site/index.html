@@ -44,8 +44,8 @@
     --accent:#4fae8a;
     --accent-ink:#07130e;
     --accent-soft:#1b2a23;
-    --sq-light:#b3a98e;
-    --sq-dark:#5c6a4a;
+    --sq-light:#c6bb9d;
+    --sq-dark:#72805e;
     --mark:#d6b457;
     --mark-soft:#4a3f1c;
     --mark-ink:#e3c570;
@@ -69,8 +69,8 @@
   --accent:#4fae8a;
   --accent-ink:#07130e;
   --accent-soft:#1b2a23;
-  --sq-light:#b3a98e;
-  --sq-dark:#5c6a4a;
+  --sq-light:#c6bb9d;
+  --sq-dark:#72805e;
   --mark:#d6b457;
   --mark-soft:#4a3f1c;
   --mark-ink:#e3c570;
@@ -216,18 +216,12 @@ h1.title small{font-family:var(--f-body);font-size:.46em;font-weight:400;color:v
 @keyframes pulse{50%{box-shadow:inset 0 0 0 7px var(--mark)}}
 .sq.ok::before{content:"";position:absolute;inset:0;background:var(--good);opacity:.35;z-index:2}
 .sq.no::before{content:"";position:absolute;inset:0;background:var(--bad);opacity:.38;z-index:2}
+/* the pieces are images, sized to their square rather than to the window */
 .pc{
-  position:relative;z-index:1;font-family:var(--f-piece);
-  font-size:min(8.4vw,42px);line-height:1;
+  position:relative;z-index:1;width:88%;height:88%;
+  object-fit:contain;pointer-events:none;user-select:none;
+  filter:drop-shadow(0 2px 2px rgba(20,26,22,.3));
 }
-/* size the pieces to the board, not the window */
-@supports (width:1cqw){ .pc{font-size:9.4cqw} }
-.pc.w{color:var(--piece-w);text-shadow:
-  0 1px 0 #2b3330,1px 0 0 #2b3330,0 -1px 0 #2b3330,-1px 0 0 #2b3330,
-  1px 1px 0 #2b3330,-1px 1px 0 #2b3330,1px -1px 0 #2b3330,-1px -1px 0 #2b3330,
-  0 3px 5px rgba(0,0,0,.28)}
-.pc.b{color:var(--piece-b);text-shadow:
-  0 1px 0 rgba(255,255,255,.45),0 3px 5px rgba(0,0,0,.28)}
 .coord{position:absolute;font-family:var(--f-mono);font-size:max(7px,1.7cqw);opacity:.65;pointer-events:none;z-index:3}
 .coord.f{right:2px;bottom:1px}
 .coord.r{left:2px;top:1px}
@@ -439,7 +433,8 @@ h1.title small{font-family:var(--f-body);font-size:.46em;font-weight:400;color:v
 
 var D = window.MCO_DATA;
 var START = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-var GLYPH = {k:"♚",q:"♛",r:"♜",b:"♝",n:"♞",p:"♟"};
+var PIECE_DIR = "pieces/";
+var PIECE_NAME = {k:"king",q:"queen",r:"rook",b:"bishop",n:"knight",p:"pawn"};
 var FILES = "abcdefgh";
 
 /* ---------- flatten ---------- */
@@ -547,7 +542,10 @@ function buildBoard(opts){
       var c = document.createElement("div");
       c.className = "sq " + (((f + r) % 2) ? "d" : "l");
       c.dataset.sq = sq;
-      var pc = document.createElement("span"); pc.className = "pc"; c.appendChild(pc);
+      var pc = document.createElement("img");
+      pc.className = "pc"; pc.alt = ""; pc.hidden = true;
+      pc.draggable = false; pc.decoding = "async";
+      c.appendChild(pc);
       if(r === 1){ var cf = document.createElement("span"); cf.className = "coord f"; cf.textContent = FILES[f]; c.appendChild(cf); }
       if(f === 0){ var cr = document.createElement("span"); cr.className = "coord r"; cr.textContent = r; c.appendChild(cr); }
       el.appendChild(c); cells[sq] = c;
@@ -569,8 +567,14 @@ function drawBoard(el, fen, last, flipped){
   var map = fenToMap(fen), sqs = Object.keys(el._cells);
   for(var i=0;i<sqs.length;i++){
     var sq = sqs[i], cell = el._cells[sq], pc = cell.firstChild, piece = map[sq];
-    pc.textContent = piece ? GLYPH[piece.p] : "";
-    pc.className = "pc" + (piece ? " " + piece.c : "");
+    if(piece){
+      var src = PIECE_DIR + piece.c + piece.p + ".png";
+      if(pc.getAttribute("src") !== src) pc.setAttribute("src", src);
+      pc.alt = (piece.c === "w" ? "White " : "Black ") + PIECE_NAME[piece.p];
+      pc.hidden = false;
+    } else {
+      pc.hidden = true; pc.alt = "";
+    }
     cell.classList.remove("from","to","sel","hint","ok","no");
     if(last && last.from === sq) cell.classList.add("from");
     if(last && last.to === sq) cell.classList.add("to");

@@ -71,6 +71,7 @@ def main():
     os.makedirs(DIST)
     io.open(os.path.join(DIST, 'index.html'), 'w', encoding='utf-8', newline='\n').write(doc)
     shutil.copyfile(os.path.join(SITE, 'openings.js'), os.path.join(DIST, 'openings.js'))
+    shutil.copytree(os.path.join(SITE, 'pieces'), os.path.join(DIST, 'pieces'))
     # tell GitHub Pages to serve the files as they are
     io.open(os.path.join(DIST, '.nojekyll'), 'w', encoding='utf-8').write('')
 
