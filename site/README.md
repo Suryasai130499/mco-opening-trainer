@@ -41,7 +41,7 @@ footnotes printed under the column tables.
 /quiz/                          name the opening from a position
 ```
 
-600 pages. Each one fetches only its own data file — a line page is about 6 kB, against
+600 pages. Each one fetches only its own data file — a line page is about 2.6 kB, against
 4.5 MB for the whole book — while `assets/app.css` and `assets/app.js` are shared by every
 page and fetched once. Every path is relative, so the site serves correctly from a
 subdirectory as well as from the root of a domain.
@@ -66,10 +66,18 @@ your own moves, and the opponent's replies play themselves after a short pause.
 - Picking up a piece marks every square it may legally reach — all of them, so the dots
   never give the line away.
 - An **illegal** move does nothing but shake the board. A **legal** move that is not this
-  line's move is played, marked with a red ✕, and taken back a moment later. Telling those
-  two apart is what the precomputed legal-move lists in `openings.js` are for.
+  line's move is played, marked with a red ✕, and taken back a moment later.
 - Where the book has footnotes to a column, they appear as **sidelines**: pick one and the
   drill runs the column to the branch point and then the footnote's analysis.
+- **Analysis arrows.** Right-drag a piece (or turn on **Arrows** and drag, which is how it
+  works on a touch screen) and the board marks every square that piece could legally reach
+  — and lets you draw to those only. A knight's arrow bends into its L, a pawn on its home
+  rank offers two squares ahead and one thereafter, a blocked or pinned piece offers
+  nothing, and en passant is offered to the side whose turn it is. Either colour's pieces
+  can be pointed at: asked about the side that is not to move, the rules answer as if it
+  were their turn. Shift and Alt change the colour, a tap rings a square, a plain click
+  wipes everything, and the arrows go by themselves as soon as a move is played, since
+  they would otherwise be pointing at pieces that have moved.
 - Reaching the end of a column marks it learned. Progress is kept in the browser's
   `localStorage`, so it survives reloads on the same browser but is not shared between
   devices.
@@ -77,6 +85,8 @@ your own moves, and the opponent's replies play themselves after a short pause.
 ## Files
 
 - `web/app.css`, `web/app.js` — the page source, shared by every page of the site
+- `web/chess.js` — the rules of chess: which squares a piece may legally go to
+- `web/rules-test.html` — runs `chess.js` over every position in the book and compares
 - `data/make_site.py` — generates `dist/`: every page, and a data file per opening and line
 - `data/sides.py` — which colour each chapter is a repertoire for
 - `openings.js` — the generated opening data, `window.MCO_DATA`, which `make_site.py` slices

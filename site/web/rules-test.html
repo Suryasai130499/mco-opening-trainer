@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>chess.js against python-chess</title>
+<style>
+  body{font:14px/1.6 ui-monospace,Consolas,monospace;margin:28px;max-width:70em;
+       background:#11150f;color:#e7ece6}
+  h1{font:600 20px/1.3 system-ui,sans-serif;margin:0 0 4px}
+  p.sub{color:#9daba1;margin:0 0 20px}
+  #out{white-space:pre-wrap}
+  .ok{color:#54b377} .bad{color:#d9705f}
+</style>
+</head>
+<body>
+<h1>chess.js against python-chess</h1>
+<p class="sub">Every position in the book, generated twice: once by python-chess at build
+time (the <code>lm</code> lists in openings.js) and once here. They have to agree exactly.</p>
+<div id="out">running…</div>
+
+<script src="chess.js"></script>
+<script src="../openings.js"></script>
+<script>
+(function(){
+var START = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+var out = document.getElementById("out");
+var n = 0, bad = [];
+
+// python-chess lists a promotion once per piece it can promote to; this
+// generator is only asked where a piece may go, so compare unique squares
+function uniq(lm){
+  var seen = {}, keep = [];
+  lm.split(" ").forEach(function(m){ if(!seen[m]){ seen[m] = 1; keep.push(m); } });
+  return keep.sort().join(" ");
+}
+
+function run(plies, where){
+  for(var i = 0; i < plies.length; i++){
+    var fen = i === 0 ? where.start : plies[i-1].fen;
+    n++;
+    var want = uniq(plies[i].lm);
+    var got = window.MCOChess.legalMoves(fen);
+    if(got !== want && bad.length < 12){
+      bad.push({ where: where.name + " ply " + (i+1), fen: fen, want: want, got: got });
+    } else if(got !== want){
+      bad.push(null);
+    }
+  }
+}
+
+window.MCO_DATA.parts.forEach(function(p){
+  p.chapters.forEach(function(c){
+    c.variations.forEach(function(v){
+      run(v.plies, { start: START, name: c.name + " / " + v.name });
+      (v.subs || []).forEach(function(s){
+        run(s.plies, {
+          start: s.fromPly ? v.plies[s.fromPly-1].fen : START,
+          name: c.name + " / " + v.name + " (" + s.key + ")"
+        });
+      });
+    });
+  });
+});
+
+var fails = bad.length;
+var lines = [];
+lines.push((fails ? "FAILED" : "PASSED") + ": " + n.toLocaleString() +
+           " positions checked, " + fails + " mismatched");
+bad.forEach(function(b){
+  if(!b) return;
+  lines.push("");
+  lines.push(b.where);
+  lines.push("  " + b.fen);
+  lines.push("  python-chess: " + b.want);
+  lines.push("  chess.js:     " + b.got);
+});
+out.className = fails ? "bad" : "ok";
+out.textContent = lines.join("\n");
+document.title = (fails ? "FAILED " : "PASSED ") + n + " positions";
+})();
+</script>
+</body>
+</html>

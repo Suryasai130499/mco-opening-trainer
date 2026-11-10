@@ -199,7 +199,14 @@ function paintMap(b, map, last){
     if(last && last.to === sq) cell.classList.add("to");
   });
 }
-function paintFen(b, fen, last){ paintMap(b, fenToMap(fen), last); }
+function paintFen(b, fen, last){
+  paintMap(b, fenToMap(fen), last);
+  // arrows belong to the position they were drawn on; once a move is played
+  // they would be pointing at pieces that have moved, so they go
+  if(b._marks && b._markFen && b._markFen !== fen) clearMarks(b);
+  b._markFen = fen;
+  renderMarks(b);
+}
 function flash(b, sq, cls, ms){
   var cell = b._cells[sq]; if(!cell) return;
   cell.classList.add(cls);
@@ -208,6 +215,169 @@ function flash(b, sq, cls, ms){
 function shake(b){
   b.classList.add("shake");
   setTimeout(function(){ b.classList.remove("shake"); }, 260);
+}
+
+/* ---------- analysis arrows ----------
+ * Drawn on an SVG laid over the squares, in board units: 10 per square, so a
+ * square's centre is a round number and nothing depends on the pixel size.
+ */
+var SVGNS = "http://www.w3.org/2000/svg";
+var COLOURS = { g:"g", y:"y", r:"r" };
+
+function svgEl(name, attrs){
+  var n = document.createElementNS(SVGNS, name);
+  Object.keys(attrs || {}).forEach(function(k){ n.setAttribute(k, attrs[k]); });
+  return n;
+}
+function makeMarks(b){
+  var svg = svgEl("svg", { "class":"marks", viewBox:"0 0 80 80", "aria-hidden":"true" });
+  var defs = svgEl("defs");
+  Object.keys(COLOURS).forEach(function(c){
+    var m = svgEl("marker", { id:"mco-head-" + c, viewBox:"0 0 6 6", refX:"4.6", refY:"3",
+                              markerWidth:"3.4", markerHeight:"3.4", orient:"auto" });
+    m.appendChild(svgEl("path", { d:"M0,0 L6,3 L0,6 Z", "class":"h-" + c }));
+    defs.appendChild(m);
+  });
+  svg.appendChild(defs);
+  b.appendChild(svg);
+  b._marks = svg;
+  b._arrows = [];
+  b._circles = [];
+  return svg;
+}
+function sqCentre(b, sq){
+  var f = FILES.indexOf(sq[0]), r = +sq[1] - 1;
+  var cx = b._flip ? 7 - f : f, cy = b._flip ? r : 7 - r;
+  return [cx * 10 + 5, cy * 10 + 5];
+}
+/* A knight goes round the corner rather than through it: the long leg first,
+ * then the turn - which is also the shape the move itself has. */
+function arrowPath(b, from, to){
+  var a = sqCentre(b, from), z = sqCentre(b, to);
+  var df = Math.abs(FILES.indexOf(to[0]) - FILES.indexOf(from[0]));
+  var dr = Math.abs(+to[1] - +from[1]);
+  var pts = [a];
+  if((df === 1 && dr === 2) || (df === 2 && dr === 1)){
+    pts.push(df === 2 ? [z[0], a[1]] : [a[0], z[1]]);
+  }
+  pts.push(z);
+  var n = pts.length, p = pts[n-2], q = pts[n-1];
+  var dx = q[0] - p[0], dy = q[1] - p[1], len = Math.sqrt(dx*dx + dy*dy) || 1;
+  pts[n-1] = [q[0] - dx/len * 3.2, q[1] - dy/len * 3.2];   // stop short of the centre
+  return pts.map(function(pt, i){
+    return (i ? "L" : "M") + pt[0].toFixed(2) + "," + pt[1].toFixed(2);
+  }).join(" ");
+}
+function renderMarks(b){
+  if(!b._marks) return;
+  var svg = b._marks;
+  while(svg.childNodes.length > 1) svg.removeChild(svg.lastChild);   // keep <defs>
+  b._circles.forEach(function(c){
+    var p = sqCentre(b, c.sq);
+    svg.appendChild(svgEl("circle", { cx:p[0], cy:p[1], r:"4.2", "class":"c-" + c.col }));
+  });
+  b._arrows.concat(b._ghost ? [b._ghost] : []).forEach(function(a){
+    svg.appendChild(svgEl("path", {
+      d: arrowPath(b, a.from, a.to),
+      "class": "c-" + a.col + (a.ghost ? " ghost" : ""),
+      "marker-end": "url(#mco-head-" + a.col + ")"
+    }));
+  });
+}
+function clearMarks(b){
+  if(!b._marks) return;
+  b._arrows = []; b._circles = []; b._ghost = null;
+  renderMarks(b);
+}
+
+/* Right-drag draws; the draw-mode button makes a plain drag do the same, so it
+ * works on a touch screen. The arrow is only allowed where the piece could
+ * actually go, which `opts.fen()` and the rules in chess.js decide together. */
+function wireArrows(b, opts){
+  makeMarks(b);
+  var drag = null;
+
+  function colourOf(ev){ return ev.shiftKey ? "y" : (ev.altKey || ev.ctrlKey ? "r" : "g"); }
+  function markTargets(list){
+    (list || []).forEach(function(t){
+      var c = b._cells[t]; if(!c) return;
+      c.classList.add("adot");
+      if(!c.firstChild.hidden) c.classList.add("occ");
+    });
+  }
+  function clearTargets(){
+    Object.keys(b._cells).forEach(function(sq){
+      b._cells[sq].classList.remove("adot", "occ");
+    });
+  }
+  function squareAt(x, y){
+    var node = document.elementFromPoint(x, y);
+    var cell = node && node.closest ? node.closest(".sq") : null;
+    return cell && b.contains(cell) ? cell.dataset.sq : null;
+  }
+  function same(a, x){ return a.from === x.from && a.to === x.to; }
+
+  b.addEventListener("contextmenu", function(ev){ ev.preventDefault(); });
+
+  b.addEventListener("pointerdown", function(ev){
+    var drawing = ev.button === 2 || (b._draw && ev.button === 0);
+    if(!drawing) return;
+    var cell = ev.target.closest ? ev.target.closest(".sq") : null;
+    if(!cell) return;
+    ev.preventDefault();
+    ev.stopPropagation();          // in draw mode a drag must not also move a piece
+    var from = cell.dataset.sq;
+    var legal = window.MCOChess ? window.MCOChess.movesFrom(opts.fen(), from) : [];
+    drag = { from: from, legal: legal, col: colourOf(ev), id: ev.pointerId, to: null };
+    markTargets(legal);
+    try{ b.setPointerCapture(ev.pointerId); }catch(e){}
+  }, true);
+
+  b.addEventListener("pointermove", function(ev){
+    if(!drag) return;
+    var to = squareAt(ev.clientX, ev.clientY);
+    var ok = to && to !== drag.from && drag.legal.indexOf(to) >= 0;
+    drag.to = ok ? to : null;
+    b._ghost = ok ? { from: drag.from, to: to, col: drag.col, ghost: true } : null;
+    renderMarks(b);
+  });
+
+  function finish(ev){
+    if(!drag) return;
+    var d = drag; drag = null;
+    b._ghost = null;
+    clearTargets();
+    try{ b.releasePointerCapture(d.id); }catch(e){}
+    var to = squareAt(ev.clientX, ev.clientY);
+    if(to === d.from || !to){                    // a click, not a drag: ring the square
+      var i = -1;
+      b._circles.forEach(function(c, n){ if(c.sq === d.from) i = n; });
+      if(i >= 0 && b._circles[i].col === d.col) b._circles.splice(i, 1);
+      else if(i >= 0) b._circles[i].col = d.col;
+      else b._circles.push({ sq: d.from, col: d.col });
+    } else if(d.legal.indexOf(to) >= 0){
+      var a = { from: d.from, to: to, col: d.col }, j = -1;
+      b._arrows.forEach(function(x, n){ if(same(x, a)) j = n; });
+      if(j >= 0 && b._arrows[j].col === a.col) b._arrows.splice(j, 1);
+      else if(j >= 0) b._arrows[j].col = a.col;
+      else b._arrows.push(a);
+    }
+    renderMarks(b);
+    if(opts.onchange) opts.onchange();
+  }
+  b.addEventListener("pointerup", finish);
+  b.addEventListener("pointercancel", function(){
+    if(!drag) return;
+    drag = null; b._ghost = null; clearTargets(); renderMarks(b);
+  });
+
+  // a plain click puts the board back to a clean slate, as every board does
+  b.addEventListener("pointerdown", function(ev){
+    if(ev.button === 0 && !b._draw && (b._arrows.length || b._circles.length)){
+      clearMarks(b);
+      if(opts.onchange) opts.onchange();
+    }
+  });
 }
 
 /* Click-to-move and drag-to-move on one board. `handlers.pickable(sq)` says
@@ -500,14 +670,32 @@ function initLine(){
       },
       targets: function(sq){
         if(S.ply >= S.plies.length) return [];
-        var out = [], lm = (S.plies[S.ply].lm || "").split(" ");
-        for(var i=0;i<lm.length;i++) if(lm[i].slice(0,2) === sq) out.push(lm[i].slice(2,4));
-        return out;
+        return window.MCOChess.movesFrom(posAt(S.plies, S.ply).fen, sq);
       },
       move: attempt
     });
     board._flip = (side === "b");
     $("boardSlot").appendChild(board);
+    wireArrows(board, {
+      fen: function(){ return posAt(S.plies, S.ply).fen; },
+      onchange: function(){ paintDrawBtn(); }
+    });
+
+    var drawBtn = $("drawBtn");
+    drawBtn.onclick = function(){
+      board._draw = !board._draw;
+      board.classList.toggle("draw", board._draw);
+      paintDrawBtn();
+    };
+    function paintDrawBtn(){
+      var n = board._arrows.length + board._circles.length;
+      drawBtn.setAttribute("aria-pressed", board._draw ? "true" : "false");
+      drawBtn.textContent = board._draw ? "Drawing" : "Arrows";
+      drawBtn.title = board._draw
+        ? "Drag to draw an arrow; the pieces cannot be moved while this is on."
+        : "Right-drag a piece to draw an arrow. Turn this on to draw by ordinary dragging.";
+      $("markCount").textContent = n ? n + (n === 1 ? " mark" : " marks") : "";
+    }
 
     /* ---- furniture ---- */
     var coach = el("div", "coach");
@@ -522,6 +710,7 @@ function initLine(){
     var moveHost = $("moveTable"), subHost = $("subList");
 
     $("flipBtn").onclick = function(){ board._flip = !board._flip; paint(); };
+    $("clearBtn").onclick = function(){ clearMarks(board); paintDrawBtn(); };
     $("restartBtn").onclick = function(){ reset(S.sub); };
     $("watchBtn").onclick = function(){ S.watching ? stopWatch() : watch(); };
     var modeBtn = $("modeBtn");
@@ -572,7 +761,7 @@ function initLine(){
       if(S.locked || S.watching || atEnd()) return;
       if(mover() !== side) return;
       var p = S.plies[S.ply];
-      if((" " + p.lm + " ").indexOf(" " + from + to + " ") < 0){
+      if(window.MCOChess.movesFrom(posAt(S.plies, S.ply).fen, from).indexOf(to) < 0){
         shake(board);                              // not a legal move at all
         return;
       }
@@ -680,6 +869,7 @@ function initLine(){
         ? "The coach names each of your moves. Switch to play them from memory."
         : "You recall each move yourself. Switch back to being told.";
       $("watchBtn").textContent = S.watching ? "Stop" : "Watch";
+      paintDrawBtn();
       paintCoach(false);
       paintSteps();
       paintMoves();
@@ -841,6 +1031,8 @@ function initLine(){
       else if(k === "r"){ reset(S.sub); ev.preventDefault(); }
       else if(k === "w"){ S.watching ? stopWatch() : watch(); ev.preventDefault(); }
       else if(k === "s"){ showMe(); ev.preventDefault(); }
+      else if(k === "a"){ drawBtn.onclick(); ev.preventDefault(); }
+      else if(k === "escape"){ clearMarks(board); paintDrawBtn(); }
     });
 
     reset(null);

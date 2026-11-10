@@ -17,10 +17,19 @@ each chapter records which colour it is a repertoire for (see
   you to recall it in **from memory** mode, with hints that escalate from the piece's square
   to the move itself;
 - an illegal move does nothing; a legal move that is not this line's move is played on the
-  board, marked wrong, and taken back.
+  board, marked wrong, and taken back;
+- right-drag a piece to draw an **analysis arrow** — and only to a square that piece could
+  really go to, so a knight's arrow bends into its L, a pawn on its home rank offers two
+  squares and one thereafter, a pinned piece offers nothing, and en passant is offered to
+  the side whose turn it is. Shift and Alt change the colour, a tap rings a square, a
+  plain click wipes them, and the **Arrows** button makes an ordinary drag draw so it
+  works on a phone.
 
-Legal-move lists are precomputed for every position, so the page can tell *illegal* from
-*wrong* without a chess engine and works offline.
+The rules live in [`site/web/chess.js`](site/web/chess.js), about 200 lines and no
+dependencies. [`site/web/rules-test.html`](site/web/rules-test.html) replays every position
+in the book through it and demands the same answer python-chess gave at build time —
+**14,263 positions, 0 mismatches**, which is why the site can ship positions alone and work
+out the moves in the browser.
 
 ## The pages
 
@@ -31,7 +40,7 @@ Legal-move lists are precomputed for every position, so the page can tell *illeg
 /quiz/                          name the opening from a position
 ```
 
-600 pages in all. Each fetches only its own data — a line page is about 6 kB rather than
+600 pages in all. Each fetches only its own data — a line page is about 2.6 kB rather than
 the whole book — while the stylesheet and script are shared and cached across the site.
 
 ## Building it
@@ -60,6 +69,13 @@ line. `site/dist/` is generated, so it is not committed.
 
 ```bash
 python -m http.server 8788 --directory site/dist
+```
+
+To check the rules the browser applies against the ones the data was built with, serve
+`site/` instead and open `web/rules-test.html`:
+
+```bash
+python -m http.server 8789 --directory site
 ```
 
 ## Deploying

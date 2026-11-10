@@ -76,6 +76,9 @@ def page(title, desc, root, body, page_kind, src):
         '</head>\n'
         '<body data-page="' + page_kind + '" data-root="' + root + '" data-src="' + root + src + '">\n'
         + body +
+        # only the trainer asks about the rules, so only it carries them
+        ('\n<script src="' + root + 'assets/chess.js" defer></script>'
+         if page_kind == 'line' else '') +
         '\n<script src="' + root + 'assets/app.js" defer></script>\n'
         '</body>\n</html>\n'
     )
@@ -127,16 +130,15 @@ def slug_of(vid):
     return vid.split('--', 1)[1]
 
 
-def thin(plies, keep_lm):
-    """Drop what a given page will not read. `lm` is the bulk of the data and
-    only the trainer needs it."""
-    out = []
-    for p in plies:
-        q = {'san': p['san'], 'from': p['from'], 'to': p['to'], 'fen': p['fen']}
-        if keep_lm:
-            q['lm'] = p['lm']
-        out.append(q)
-    return out
+def thin(plies):
+    """Drop what no page reads.
+
+    `lm` - the legal moves in every position - is most of openings.js, and the
+    site does not ship it: assets/chess.js works them out from the FEN instead,
+    and web/rules-test.html checks that it gets the same answer python-chess
+    gave at build time, for every position in the book."""
+    return [{'san': p['san'], 'from': p['from'], 'to': p['to'], 'fen': p['fen']}
+            for p in plies]
 
 
 def write(path, text):
@@ -222,7 +224,7 @@ def main():
 
         dump(os.path.join(DIST, 'd', cid + '.json'), {
             'id': cid, 'name': ch['name'], 'side': ch['side'],
-            'linePlies': thin(ch['linePlies'], False),
+            'linePlies': thin(ch['linePlies']),
             'vars': [{
                 'id': v['id'], 'slug': slug_of(v['id']), 'name': v['name'],
                 'page': v['page'], 'pgn': v['pgn'], 'nsub': len(v.get('subs') or []),
@@ -283,11 +285,11 @@ def main():
                 'ch': {'id': cid, 'name': ch['name'], 'side': ch['side']},
                 'v': {
                     'id': v['id'], 'slug': slug, 'name': v['name'], 'page': v['page'],
-                    'pgn': v['pgn'], 'plies': thin(v['plies'], True),
+                    'pgn': v['pgn'], 'plies': thin(v['plies']),
                     'subs': [{
                         'id': s['id'], 'fromPly': s['fromPly'], 'page': s['page'],
                         'key': s['key'], 'cite': s['cite'], 'pgn': s['pgn'],
-                        'plies': thin(s['plies'], True),
+                        'plies': thin(s['plies']),
                     } for s in subs],
                 },
             })
@@ -323,18 +325,26 @@ def main():
                 'title="Flip the board (F)">⇅</button>'
                 '<button class="btn" id="watchBtn" title="Play the line through (W)">Watch</button>'
                 '<button class="btn" id="restartBtn" title="Start again (R)">Restart</button>'
-                '<span class="plycount" id="plyCount"></span>'
+                '<button class="btn" id="drawBtn" aria-pressed="false">Arrows</button>'
+                '<button class="iconbtn" id="clearBtn" aria-label="Clear the arrows" '
+                'title="Clear the arrows (Esc)">⌫</button>'
+                '<span class="plycount" id="markCount"></span>'
                 '<span class="tomove" id="toMove"></span>'
-                '</div></div>'
+                '</div>'
+                '<p class="plycount hintline" style="margin-top:9px">'
+                '<span id="plyCount"></span> &middot; right-drag a piece to draw an arrow, '
+                'or turn <b>Arrows</b> on and drag. Only where that piece could really go.</p>'
+                '</div>'
                 '<div id="panel">'
                 '<section class="card"><h2>About this line</h2>'
                 '<p class="note">' + esc(v['note']) + '</p>'
                 '<div class="btnrow" style="margin-top:12px">'
                 '<button class="btn" id="modeBtn">Mode</button>'
-                '<span class="plycount"><span class="kbd">H</span> hint &middot; '
+                '<span class="plycount hintline"><span class="kbd">H</span> hint &middot; '
                 '<span class="kbd">S</span> show &middot; <span class="kbd">W</span> watch '
                 '&middot; <span class="kbd">F</span> flip &middot; '
-                '<span class="kbd">R</span> restart</span>'
+                '<span class="kbd">R</span> restart &middot; '
+                '<span class="kbd">A</span> arrows</span>'
                 '</div></section>'
                 '<section class="card"><h2>The line</h2>'
                 '<table class="movetable" id="moveTable"></table></section>' +
@@ -389,7 +399,7 @@ def main():
 
     # ---- shared assets ----
     os.makedirs(os.path.join(DIST, 'assets'))
-    for f in ('app.css', 'app.js'):
+    for f in ('app.css', 'app.js', 'chess.js'):
         shutil.copyfile(os.path.join(WEB, f), os.path.join(DIST, 'assets', f))
     shutil.copytree(os.path.join(SITE, 'pieces'), os.path.join(DIST, 'pieces'))
     write(os.path.join(DIST, '.nojekyll'), '')
