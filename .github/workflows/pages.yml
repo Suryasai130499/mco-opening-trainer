@@ -18,12 +18,13 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      # needs no packages: it only wraps the page in a document skeleton
-      - run: python site/data/make_standalone.py
+      # needs no packages: site/openings.js is committed already built, and
+      # this only slices it into one page per opening and per line
+      - run: python site/data/make_site.py
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

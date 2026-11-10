@@ -1,43 +1,73 @@
 # MCO-15 Opening Trainer
 
-A static site for learning chess openings: **548 lines** and **639 sidelines**, each
-replayable on a board, drillable move by move, and quizzable.
+A static site for learning chess openings: **548 lines** and **639 sidelines** from *Modern
+Chess Openings, 15th Edition*, each on a page of its own, each drilled move by move.
 
-Everything is in [`site/`](site/) — see [site/README.md](site/README.md) for what's in the
-data and how it was built.
+Live at **https://suryasai130499.github.io/mco-opening-trainer/**
 
-## Running it locally
+## How the training works
+
+Every opening belongs to one side. The Sicilian is Black's, the Ruy Lopez is White's — so
+each chapter records which colour it is a repertoire for (see
+[`site/data/sides.py`](site/data/sides.py)), and the trainer follows from that:
+
+- the board is oriented to **your** side;
+- you play only your side's moves — the opponent's replies play themselves;
+- the coach names the move in words (*"Move the knight to f3"*) in **guided** mode, or asks
+  you to recall it in **from memory** mode, with hints that escalate from the piece's square
+  to the move itself;
+- an illegal move does nothing; a legal move that is not this line's move is played on the
+  board, marked wrong, and taken back.
+
+Legal-move lists are precomputed for every position, so the page can tell *illegal* from
+*wrong* without a chess engine and works offline.
+
+## The pages
+
+```
+/                               every opening, searchable
+/o/sicilian/                    an opening: its lines, plans and your progress
+/o/sicilian/najdorf-variation/  the trainer for one line
+/quiz/                          name the opening from a position
+```
+
+600 pages in all. Each fetches only its own data — a line page is about 6 kB rather than
+the whole book — while the stylesheet and script are shared and cached across the site.
+
+## Building it
+
+The page source lives in [`site/web/`](site/web/) (one stylesheet, one script) and the data
+in [`site/data/`](site/data/). Two steps, and only the first needs anything installed:
 
 ```bash
-python -m http.server 8777 --directory site
+pip install chess
+```
+
+```bash
+python site/data/build.py
+```
+
+That reads the authored lines in `data_p1.py` … `data_p6.py`, replays every move to verify
+it is legal, attaches the sidelines recovered from the book's footnotes, and writes
+`site/openings.js` (committed, so CI needs no packages).
+
+```bash
+python site/data/make_site.py
+```
+
+That slices `openings.js` into `site/dist/` — the whole site, one page per opening and per
+line. `site/dist/` is generated, so it is not committed.
+
+```bash
+python -m http.server 8788 --directory site/dist
 ```
 
 ## Deploying
 
-The page in `site/index.html` is written as a Claude Artifact body, so it has no
-`<!doctype>` or `<head>` of its own — the Artifact platform supplies those. For a normal
-web host it needs wrapping first:
-
-```bash
-python site/data/make_standalone.py
-```
-
-That writes `site/dist/` (a complete HTML document plus the data file), which is what the
-GitHub Pages workflow in `.github/workflows/pages.yml` publishes on every push to `main`.
-`site/dist/` is generated, so it is not committed.
-
-To publish it on GitHub Pages:
-
-```bash
-gh auth login
-```
-
-```bash
-gh repo create mco-opening-trainer --source . --public --push
-```
-
-Then set **Settings → Pages → Source** to **GitHub Actions**, and the workflow does the
-rest. Any other static host works too — point it at `site/dist/`.
+[`.github/workflows/pages.yml`](.github/workflows/pages.yml) runs `make_site.py` and
+publishes `site/dist/` on every push to `main`. Any other static host works too — point it
+at `site/dist/`. Every path in the site is relative, so it serves correctly from a
+subdirectory as well as from the root of a domain.
 
 ## Provenance
 

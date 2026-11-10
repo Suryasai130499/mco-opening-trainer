@@ -11,6 +11,8 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.join(HERE, os.pardir, 'openings.js')
 sys.path.insert(0, HERE)
 
+from sides import side_of, SIDES
+
 MODULES = ['data_p1', 'data_p2', 'data_p3', 'data_p4', 'data_p5', 'data_p6']
 
 
@@ -18,10 +20,23 @@ def slug(s):
     return re.sub(r'[^a-z0-9]+', '-', s.lower()).strip('-')
 
 
+def legal_of(board):
+    """Every legal move in this position as "e2e4" text, space separated.
+
+    The trainer has no engine, so without this a board cannot tell an illegal
+    move from a wrong one - and the difference matters: dragging a knight to a
+    square it cannot reach should do nothing, while playing a real move that is
+    not this line's move is a mistake worth reporting."""
+    return ' '.join(sorted(
+        chess.square_name(m.from_square) + chess.square_name(m.to_square)
+        for m in board.legal_moves))
+
+
 def play(board, tokens):
     """Push each SAN onto board, returning one record per ply."""
     plies = []
     for tok in tokens:
+        lm = legal_of(board)
         mv = board.parse_san(tok)
         san = board.san(mv)
         board.push(mv)
@@ -31,6 +46,8 @@ def play(board, tokens):
             "to": chess.square_name(mv.to_square),
             "fen": board.fen(),
             "chk": board.is_check(),
+            # legal moves in the position this ply is played *from*
+            "lm": lm,
         })
     return plies
 
@@ -64,6 +81,7 @@ if os.path.exists(_subpath):
 
 
 parts, n_ch, n_var, n_sub, seen = [], 0, 0, 0, set()
+ch_ids = set()
 
 for mname in MODULES:
     P = importlib.import_module(mname).PART
@@ -97,14 +115,19 @@ for mname in MODULES:
             n_var += 1
         chapters.append({
             "id": ch['id'], "num": ch['num'], "name": ch['name'],
+            "side": side_of(ch['id']),
             "aka": ch.get('aka', ''), "eco": ch.get('eco', ''), "page": ch['page'],
             "line": ch['line'], "linePgn": cpgn, "linePlies": cplies,
             "summary": ch['summary'], "whitePlan": ch['white_plan'],
             "blackPlan": ch['black_plan'], "variations": variations,
         })
+        ch_ids.add(ch['id'])
         n_ch += 1
     parts.append({"id": P['id'], "num": P['num'], "name": P['name'],
                   "line": P['line'], "blurb": P['blurb'], "chapters": chapters})
+
+extra = sorted(set(SIDES) - ch_ids)
+assert not extra, 'sides.py names chapters that do not exist: %s' % extra
 
 data = {
     "meta": {
@@ -112,6 +135,8 @@ data = {
         "author": "Nick de Firmian",
         "publisher": "Random House Puzzles & Games / David McKay (2008)",
         "parts": len(parts), "chapters": n_ch, "variations": n_var,
+        "white": sum(1 for p in parts for c in p['chapters'] if c['side'] == 'w'),
+        "black": sum(1 for p in parts for c in p['chapters'] if c['side'] == 'b'),
         "sublines": n_sub,
         "note": "Chapters, named variations and page references follow the book's contents "
                 "and index. Sidelines come from the book's footnotes. Every move sequence "

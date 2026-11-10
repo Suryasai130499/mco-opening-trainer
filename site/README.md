@@ -5,13 +5,17 @@ An offline website for learning every opening in *Modern Chess Openings, 15th Ed
 
 ## Running it
 
-Open `index.html` directly in a browser, or serve the folder:
+Build the site, then serve it:
 
 ```bash
-python -m http.server 8777 --directory site
+python site/data/make_site.py
 ```
 
-Then visit <http://localhost:8777>.
+```bash
+python -m http.server 8788 --directory site/dist
+```
+
+Then visit <http://localhost:8788>.
 
 ## What's in it
 
@@ -28,31 +32,61 @@ contents (pp. vi–vii), and the named variations and page references come from 
 own index (pp. 741–748) and its column-page headers. The sidelines come from the
 footnotes printed under the column tables.
 
-## Three modes
+## A page per opening and per line
 
-- **Study** — replay any line move by move on the board, with the moves laid out in the
-  book's own two-column White/Black table. Each chapter carries a summary and both sides'
-  plans; each line carries a note and its MCO page number. Where the book has footnotes to
-  a column, they appear as **sidelines**: pick one and the board plays the main line up to
-  the branch and then the footnote's analysis, shown in amber in the move table.
-- **Train** — play the line yourself on the board. Pick a side and the opponent answers
-  automatically. Wrong moves are flagged; hints highlight the piece to move. Finishing a
-  line marks it learned.
-- **Quiz** — name the opening from a position.
+```
+/                               every opening, searchable, grouped by the book's six parts
+/o/sicilian/                    an opening: its lines, its plans, your progress
+/o/sicilian/najdorf-variation/  the trainer for one line
+/quiz/                          name the opening from a position
+```
 
-Progress is kept in the browser's `localStorage`, so it survives reloads on the same
-browser but is not shared between devices.
+600 pages. Each one fetches only its own data file — a line page is about 6 kB, against
+4.5 MB for the whole book — while `assets/app.css` and `assets/app.js` are shared by every
+page and fetched once. Every path is relative, so the site serves correctly from a
+subdirectory as well as from the root of a domain.
+
+## Which side you play
+
+Every opening belongs to one side, and `data/sides.py` records which: a *Defense* or a
+*Counter Gambit* is named for Black's decision and is drilled as Black, while an *Opening*,
+*Game* or *Attack* is White's. 22 chapters are White's, 28 are Black's. `build.py` refuses
+to build a chapter that is not listed, so a new one cannot ship silently defaulting to the
+wrong colour.
+
+From that one fact the trainer follows: the board is oriented to your side, you play only
+your own moves, and the opponent's replies play themselves after a short pause.
+
+## How a line is drilled
+
+- **Guided** mode names each of your moves in words — *“Move the knight to f3”*,
+  *“Take on d4 with the c-pawn”*, *“Castle kingside”*.
+- **From memory** mode asks only *“White to play move 6”*. A hint then marks the piece's
+  square, a second names the move, and *Show me* plays it.
+- Picking up a piece marks every square it may legally reach — all of them, so the dots
+  never give the line away.
+- An **illegal** move does nothing but shake the board. A **legal** move that is not this
+  line's move is played, marked with a red ✕, and taken back a moment later. Telling those
+  two apart is what the precomputed legal-move lists in `openings.js` are for.
+- Where the book has footnotes to a column, they appear as **sidelines**: pick one and the
+  drill runs the column to the branch point and then the footnote's analysis.
+- Reaching the end of a column marks it learned. Progress is kept in the browser's
+  `localStorage`, so it survives reloads on the same browser but is not shared between
+  devices.
 
 ## Files
 
-- `index.html` — the whole application (markup, styles and script)
-- `openings.js` — the generated opening data, `window.MCO_DATA`
+- `web/app.css`, `web/app.js` — the page source, shared by every page of the site
+- `data/make_site.py` — generates `dist/`: every page, and a data file per opening and line
+- `data/sides.py` — which colour each chapter is a repertoire for
+- `openings.js` — the generated opening data, `window.MCO_DATA`, which `make_site.py` slices
 - `data/data_p1.py` … `data_p6.py` — the source for each of the book's six parts
 - `data/sublines.json` — sidelines recovered from the book's footnotes
 - `data/sanparse.py` — reads OCR'd move text against a live board
 - `data/extract_sublines.py` — rebuilds `sublines.json` from the PDF
 - `data/validate.py` — replays every line and reports any illegal move
-- `data/build.py` — regenerates `openings.js` from the part files and `sublines.json`
+- `data/build.py` — regenerates `openings.js` from the part files and `sublines.json`,
+  including the list of legal moves in every position the trainer needs one for
 
 To change or add a line, edit the relevant `data/data_pN.py`, then:
 
@@ -79,7 +113,7 @@ python site/data/extract_sublines.py kupdf.net_modern-chess-openings-15th-editio
 Chapter and variation names, page references and the book's taxonomy were extracted from
 the PDF's contents and index. The move sequences are standard main lines for each named
 variation, written in SAN and then **verified move by move with `python-chess`** — every
-one of the 518 lines was replayed from the starting position and rejected if any move was
+one of the 548 lines was replayed from the starting position and rejected if any move was
 illegal. Each position in `openings.js` is a precomputed FEN, so the site needs no chess
 engine at runtime and works with no network connection.
 
